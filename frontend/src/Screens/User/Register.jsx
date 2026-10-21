@@ -131,7 +131,10 @@ export function Register() {
         } else {
           setOtpSent(true);
           setTimer(30);
-          setOtpMsg('OTP has been sent to your email. Please check your inbox.');
+          setOtpMsg(res.message || 'OTP has been sent to your email. Please check your inbox.');
+          if (res.otp) {
+            formik.setFieldValue('otp', res.otp);
+          }
         }
       } else {
         setEmailError(res.message || 'Failed to send OTP.');
