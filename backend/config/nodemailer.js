@@ -1,6 +1,12 @@
 require('dotenv').config();
 const nodemailer = require('nodemailer');
 
+const getBaseAppUrl = () => {
+  if (process.env.CLIENT_URL) return process.env.CLIENT_URL.replace(/\/+$/, '');
+  if (process.env.RENDER_EXTERNAL_URL) return process.env.RENDER_EXTERNAL_URL.replace(/\/+$/, '');
+  return 'https://campuscollab.onrender.com';
+};
+
 const isAdminEmail = (email) => {
   if (!email) return false;
   const cleanEmail = email.toLowerCase().trim();
@@ -218,7 +224,7 @@ const sendTeamInviteEmail = async ({ toEmail, recipientName, senderName, senderE
     cc: shouldCcSender ? senderEmail.trim() : undefined,
     replyTo: senderEmail ? `"${senderName}" <${senderEmail.trim()}>` : user,
     subject: `👥 Team Invitation: Join "${teamTitle}" - CampusCollab`,
-    text: `Hello ${recipientName},\n\n${senderName} (${senderEmail}) has invited you to join their project team "${teamTitle}" on CampusCollab.\n\nDescription: ${teamDescription || 'Collaborative team project'}\nTech: ${(teamTech || []).join(', ')}\n\nMessage: "${message || 'Join our team!'}"\n\nLog in to CampusCollab to accept and join the team: https://campuscollab.edu/requests\n\nBest regards,\nCampusCollab Team`,
+    text: `Hello ${recipientName},\n\n${senderName} (${senderEmail}) has invited you to join their project team "${teamTitle}" on CampusCollab.\n\nDescription: ${teamDescription || 'Collaborative team project'}\nTech: ${(teamTech || []).join(', ')}\n\nMessage: "${message || 'Join our team!'}"\n\nLog in to CampusCollab to accept and join the team: ${getBaseAppUrl()}/requests\n\nBest regards,\nCampusCollab Team`,
     html: `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; background-color: #0b1120; border: 1px solid #1e293b; border-radius: 16px; overflow: hidden; color: #e2e8f0;">
         <div style="background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%); padding: 24px 28px;">
@@ -250,7 +256,7 @@ const sendTeamInviteEmail = async ({ toEmail, recipientName, senderName, senderE
           </div>` : ''}
 
           <div style="text-align: center; margin: 28px 0 16px 0;">
-            <a href="http://localhost:5173/requests" target="_blank" style="display: inline-block; background-color: #f59e0b; color: #030712; font-weight: 800; font-size: 14px; text-decoration: none; padding: 12px 30px; border-radius: 10px; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);">
+            <a href="${getBaseAppUrl()}/requests" target="_blank" style="display: inline-block; background-color: #f59e0b; color: #030712; font-weight: 800; font-size: 14px; text-decoration: none; padding: 12px 30px; border-radius: 10px; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);">
               View & Accept Invitation
             </a>
             <p style="margin: 12px 0 0 0; color: #64748b; font-size: 11px;">
@@ -294,7 +300,7 @@ const sendTeamJoinRequestEmail = async ({ toEmail, leadName, applicantName, appl
     cc: shouldCcApplicant ? applicantEmail.trim() : undefined,
     replyTo: applicantEmail ? `"${applicantName}" <${applicantEmail.trim()}>` : user,
     subject: `🙋 New Member Join Request for "${teamTitle}" - ${applicantName}`,
-    text: `Hello ${leadName},\n\n${applicantName} (${applicantEmail}, ${applicantDept}) has requested to join your project team "${teamTitle}" on CampusCollab.\n\nApplicant Note: "${message || 'I would like to join your team!'}"\n\nLog in to CampusCollab to review and accept: https://campuscollab.edu/requests\n\nBest regards,\nCampusCollab Team`,
+    text: `Hello ${leadName},\n\n${applicantName} (${applicantEmail}, ${applicantDept}) has requested to join your project team "${teamTitle}" on CampusCollab.\n\nApplicant Note: "${message || 'I would like to join your team!'}"\n\nLog in to CampusCollab to review and accept: ${getBaseAppUrl()}/requests\n\nBest regards,\nCampusCollab Team`,
     html: `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; background-color: #0b1120; border: 1px solid #1e293b; border-radius: 16px; overflow: hidden; color: #e2e8f0;">
         <div style="background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%); padding: 24px 28px;">
@@ -325,7 +331,7 @@ const sendTeamJoinRequestEmail = async ({ toEmail, leadName, applicantName, appl
           </div>` : ''}
 
           <div style="text-align: center; margin: 28px 0 16px 0;">
-            <a href="http://localhost:5173/requests" target="_blank" style="display: inline-block; background-color: #0ea5e9; color: #030712; font-weight: 800; font-size: 14px; text-decoration: none; padding: 12px 30px; border-radius: 10px; box-shadow: 0 4px 14px rgba(14, 165, 233, 0.35);">
+            <a href="${getBaseAppUrl()}/requests" target="_blank" style="display: inline-block; background-color: #0ea5e9; color: #030712; font-weight: 800; font-size: 14px; text-decoration: none; padding: 12px 30px; border-radius: 10px; box-shadow: 0 4px 14px rgba(14, 165, 233, 0.35);">
               Review Request in Dashboard
             </a>
             <p style="margin: 12px 0 0 0; color: #64748b; font-size: 11px;">
@@ -391,7 +397,7 @@ const sendTeamJoinedConfirmationEmail = async ({ toEmail, memberName, teamTitle,
           </div>
 
           <div style="text-align: center; margin: 28px 0 16px 0;">
-            <a href="http://localhost:5173/teams" target="_blank" style="display: inline-block; background-color: #10b981; color: #030712; font-weight: 800; font-size: 14px; text-decoration: none; padding: 12px 30px; border-radius: 10px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);">
+            <a href="${getBaseAppUrl()}/teams" target="_blank" style="display: inline-block; background-color: #10b981; color: #030712; font-weight: 800; font-size: 14px; text-decoration: none; padding: 12px 30px; border-radius: 10px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);">
               Open Team Workspace
             </a>
           </div>
@@ -504,7 +510,7 @@ const sendPeerCollaborationRequestEmail = async ({
           </div>` : ''}
 
           <div style="text-align: center; margin: 28px 0 16px 0;">
-            <a href="http://localhost:5173/requests" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%); color: #ffffff; font-weight: 800; font-size: 14px; text-decoration: none; padding: 12px 30px; border-radius: 10px; box-shadow: 0 4px 14px rgba(217, 70, 239, 0.35);">
+            <a href="${getBaseAppUrl()}/requests" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%); color: #ffffff; font-weight: 800; font-size: 14px; text-decoration: none; padding: 12px 30px; border-radius: 10px; box-shadow: 0 4px 14px rgba(217, 70, 239, 0.35);">
               Respond to Collaboration Request
             </a>
             <p style="margin: 12px 0 0 0; color: #64748b; font-size: 11px;">
