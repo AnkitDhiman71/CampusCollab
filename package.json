@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "CampusCollab Full-Stack MERN Application",
   "scripts": {
-    "build": "npm install --prefix frontend && npm run build --prefix frontend && npm install --prefix backend",
+    "build": "npm install --prefix frontend --include=dev && npm run build --prefix frontend && npm install --prefix backend",
     "start": "node backend/server.js"
   }
 }
