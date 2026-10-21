@@ -53,11 +53,16 @@ const sendOtp = async (req, res) => {
     await Otp.deleteOne({ email });
     await Otp.create({ email, otp });
 
-    await sendOtpEmail(email, otp);
+    const emailResult = await sendOtpEmail(email, otp);
+    const msg = (emailResult?.warning || emailResult?.devMode)
+      ? `(Notice: Cloud host blocked SMTP) Your OTP is: ${otp}`
+      : 'OTP sent to your email successfully. Please check your inbox.';
+
     return res.json({
       success: true,
       isAdmin: false,
-      message: 'OTP sent to your email successfully. Please check your inbox.',
+      message: msg,
+      devOtp: (emailResult?.warning || emailResult?.devMode) ? otp : undefined,
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });

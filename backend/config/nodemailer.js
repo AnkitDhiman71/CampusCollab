@@ -7,6 +7,38 @@ const getBaseAppUrl = () => {
   return 'https://campuscollab.onrender.com';
 };
 
+// Helper to send via Resend API (HTTPS Port 443 - 100% immune to cloud SMTP blocks)
+const sendViaResend = async ({ to, subject, html, text, fromName = 'CampusCollab' }) => {
+  const apiKey = (process.env.RESEND_API_KEY || '').trim();
+  if (!apiKey) return null;
+
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: `${fromName} <onboarding@resend.dev>`,
+        to: Array.isArray(to) ? to : [to],
+        subject,
+        html,
+        text,
+      }),
+    });
+    const data = await res.json();
+    if (res.ok && data?.id) {
+      console.log(`[Resend HTTP API] Successfully delivered to ${to}, ID: ${data.id}`);
+      return { success: true, messageId: data.id };
+    }
+    console.error(`[Resend HTTP Error]:`, data);
+  } catch (err) {
+    console.error(`[Resend HTTP Fetch Error]:`, err.message);
+  }
+  return null;
+};
+
 const isAdminEmail = (email) => {
   if (!email) return false;
   const cleanEmail = email.toLowerCase().trim();
@@ -30,14 +62,14 @@ const getTransporter = () => {
       auth: { user, pass },
       pool: true,
       maxConnections: 5,
-      connectionTimeout: 8000,
-      greetingTimeout: 8000,
-      socketTimeout: 10000,
+      connectionTimeout: 4000,
+      greetingTimeout: 4000,
+      socketTimeout: 5000,
     });
     return cachedTransporter;
   }
 
-  // Fast direct SSL connection on port 465 (avoids cloud port 587 STARTTLS throttling/delays)
+  // Fast direct SSL connection on port 465 with 4s timeout so cloud firewalls don't hang requests
   cachedTransporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 465,
@@ -46,9 +78,9 @@ const getTransporter = () => {
     maxConnections: 5,
     maxMessages: 100,
     auth: { user, pass },
-    connectionTimeout: 8000,
-    greetingTimeout: 8000,
-    socketTimeout: 10000,
+    connectionTimeout: 4000,
+    greetingTimeout: 4000,
+    socketTimeout: 5000,
   });
 
   return cachedTransporter;
@@ -61,6 +93,26 @@ const sendOtpEmail = async (email, otp) => {
 
   const user = (process.env.EMAIL_USER || '').trim();
   const pass = (process.env.EMAIL_PASS || '').replace(/\s+/g, '').trim();
+
+  // Try Resend HTTPS API first if configured (100% immune to cloud SMTP blocks)
+  if (process.env.RESEND_API_KEY) {
+    const resendRes = await sendViaResend({
+      to: email,
+      subject: `Your Verification Code: ${otp} - CampusCollab`,
+      text: `Your CampusCollab Student Registration OTP is: ${otp}. Valid for 5 minutes.`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px;">
+          <h2 style="color: #4f46e5;">CampusCollab Registration</h2>
+          <p style="color: #475569; font-size: 15px;">Use the OTP below to verify your student email address.</p>
+          <div style="background-color: #f1f5f9; padding: 18px; border-radius: 8px; text-align: center; margin: 20px 0;">
+            <span style="font-size: 32px; font-weight: bold; letter-spacing: 6px; color: #1e293b;">${otp}</span>
+          </div>
+          <p style="color: #64748b; font-size: 13px;">This OTP is valid for <strong>5 minutes</strong>.</p>
+        </div>
+      `,
+    });
+    if (resendRes?.success) return resendRes;
+  }
 
   if (!user || !pass) {
     console.log(`[Email Service] Warning: EMAIL_USER or EMAIL_PASS not configured. Dev OTP: ${otp}`);
