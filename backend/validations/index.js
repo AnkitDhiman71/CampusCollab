@@ -13,12 +13,7 @@ const sendOtpSchema = yup.object({
   email: yup
     .string()
     .email('Please enter a valid email')
-    .required('Please provide an email address.')
-    .test('maimt', 'Student email must end with @maimt.com', (val) => {
-      if (!val) return false;
-      const clean = val.toLowerCase().trim();
-      return clean.includes('admin') || clean.endsWith('@maimt.com');
-    }),
+    .required('Please provide an email address.'),
 });
 
 const verifyOtpSchema = yup.object({
@@ -35,12 +30,7 @@ const signupSchema = yup.object({
   email: yup
     .string()
     .email('Please enter a valid email')
-    .required('Please provide email.')
-    .test('maimt', 'Student email must end with @maimt.com', (val) => {
-      if (!val) return false;
-      const clean = val.toLowerCase().trim();
-      return clean.includes('admin') || clean.endsWith('@maimt.com');
-    }),
+    .required('Please provide email.'),
   password: yup.string().min(6, 'Password must be at least 6 characters.').required('Please provide password.'),
   department: yup.string().default('General'),
   skills: yup.string().default(''),

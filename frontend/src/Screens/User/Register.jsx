@@ -44,8 +44,8 @@ export function Register() {
       }
       if (!values.email?.trim()) {
         errors.email = 'Email address is required';
-      } else if (!isAdmin && !values.email.toLowerCase().trim().endsWith('@maimt.com')) {
-        errors.email = 'Student email must end with @maimt.com';
+      } else if (!isAdmin && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
+        errors.email = 'Please enter a valid email address';
       }
       if (!isAdmin && !otpVerified && !values.otp?.trim()) {
         errors.otp = 'Please verify your email with OTP';
@@ -63,8 +63,8 @@ export function Register() {
     onSubmit: async (values, { setSubmitting }) => {
       setServerError('');
       setEmailError('');
-      if (!isAdmin && !values.email.toLowerCase().trim().endsWith('@maimt.com')) {
-        setEmailError('Student email must end with @maimt.com');
+      if (!isAdmin && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
+        setEmailError('Please enter a valid email address');
         setSubmitting(false);
         return;
       }
@@ -112,8 +112,8 @@ export function Register() {
       return;
     }
 
-    if (!isAdmin && !email.endsWith('@maimt.com')) {
-      setEmailError('Student email must end with @maimt.com');
+    if (!isAdmin && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setEmailError('Please enter a valid email address');
       formik.setFieldTouched('email', true);
       return;
     }
