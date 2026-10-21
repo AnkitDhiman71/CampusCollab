@@ -1,0 +1,307 @@
+================================================================================
+                    CAMPUSCOLLAB / CAMPUSCARE PROJECT
+           DOCUMENTATION: GETME FUNCTION & /ME API ENDPOINT
+================================================================================
+
+TABLE OF CONTENTS
+-----------------
+1. Executive Summary & Purpose
+2. High-Level Architecture & Request Flow
+3. Backend Implementation
+   - 3.1. Route Definition (/api/auth/me)
+   - 3.2. Authentication Middleware (protect)
+   - 3.3. Controller Handler (getMe)
+   - 3.4. Token & Session Management
+4. Frontend Implementation
+   - 4.1. API Client Helper (getMe in auth.js)
+   - 4.2. Route Protection & Auth Guard (ProtectedRoute.jsx)
+   - 4.3. Navigation & Dynamic UI State (Navbar.jsx)
+   - 4.4. Home Dashboard Personalization (Home.jsx)
+5. Request & Response Lifecycle (Step-by-Step)
+6. Sample Request & Response Payloads
+7. Key Benefits & Design Rationale
+8. Summary Table of Files & Roles
+
+================================================================================
+1. EXECUTIVE SUMMARY & PURPOSE
+================================================================================
+In this MERN stack project, the "Me" pattern (`getMe()` on the frontend and 
+`GET /api/auth/me` on the backend) is the backbone of session verification,
+user identity management, and client-side access control.
+
+Its primary purposes are:
+- Verifying whether a visiting user has a valid, active login session.
+- Securely identifying who the authenticated user is (name, email, role, 
+  department, skills) without exposing sensitive information (e.g. password hash).
+- Persisting authentication state across page reloads and browser tab closures.
+- Powering Protected Routes so unauthenticated visitors are prevented from
+  accessing private dashboard pages.
+- Supplying the Navbar with user details (such as showing the Admin badge 
+  for admin users or switching between "Sign In" and "Sign Out").
+
+================================================================================
+2. HIGH-LEVEL ARCHITECTURE & REQUEST FLOW
+================================================================================
++-------------------------------------------------------------------------+
+|                              FRONTEND                                   |
+|                                                                         |
+|  [ProtectedRoute / Navbar / Home]                                       |
+|             |                                                           |
+|             v                                                           |
+|   calls `getMe()` from frontend/src/API/auth.js                         |
+|             |                                                           |
+|             v                                                           |
+|   HTTP GET /api/auth/me                                                 |
+|   (Credentials: 'include' -> automatically transmits HTTP-only cookie)  |
++-------------------------------------------------------------------------+
+                                  |
+                                  v
++-------------------------------------------------------------------------+
+|                              BACKEND                                    |
+|                                                                         |
+|   1. Express Router: `GET /api/auth/me` (backend/routes/authRoutes.js)  |
+|             |                                                           |
+|             v                                                           |
+|   2. Middleware: `protect` (backend/middlewares/authMiddleware.js)      |
+|      - Reads cookie `token` or Authorization Bearer header              |
+|      - Verifies JWT signature using JWT_SECRET                          |
+|      - Fetches User from MongoDB by decoded ID:                         |
+|        `User.findById(decoded.id).select('-password')`                  |
+|      - Attaches user object to `req.user`                               |
+|             |                                                           |
+|             v                                                           |
+|   3. Controller: `getMe` (backend/controllers/authController.js)        |
+|      - Returns `{ success: true, user: req.user }`                      |
++-------------------------------------------------------------------------+
+
+================================================================================
+3. BACKEND IMPLEMENTATION
+================================================================================
+
+3.1. ROUTE DEFINITION
+---------------------
+File: backend/routes/authRoutes.js (Line 13)
+Code:
+    router.get('/me', protect, getMe);
+
+- Base Path: The router is mounted in backend/server.js at `/api/auth`.
+- Full URL: `http://localhost:5000/api/auth/me` (or proxied via `/api/auth/me`).
+- Method: GET
+- Chaining: First passes through the `protect` middleware; if valid, executes
+  the `getMe` controller.
+
+3.2. AUTHENTICATION MIDDLEWARE (`protect`)
+-----------------------------------------
+File: backend/middlewares/authMiddleware.js
+How it works:
+1. Extraction (`getTokenFromReq`):
+   Looks for the JWT token in three places:
+   a) `req.cookies.token` (standard cookie-parser)
+   b) `req.headers.cookie` (raw cookie header parsing as fallback)
+   c) `req.headers.authorization` (Bearer token header)
+2. Presence Check:
+   If no token exists, immediately halts with HTTP 401 Unauthorized:
+   `{ success: false, message: 'Access denied. Please login.' }`
+3. Verification:
+   Calls `jwt.verify(token, process.env.JWT_SECRET)`.
+   If expired or tampered with, catches the error and returns HTTP 401:
+   `{ success: false, message: 'Session expired. Please login again.' }`
+4. User Lookup:
+   Executes `User.findById(decoded.id).select('-password')` against MongoDB.
+   Excludes the password hash for security.
+   If user was deleted from DB, returns HTTP 401:
+   `{ success: false, message: 'User not found.' }`
+5. Attachment:
+   Sets `req.user = userDoc` and calls `next()` to pass control to the controller.
+
+3.3. CONTROLLER HANDLER (`getMe`)
+---------------------------------
+File: backend/controllers/authController.js (Lines 125-127)
+Code:
+    const getMe = async (req, res) => {
+      return res.json({ success: true, user: req.user });
+    };
+
+- Since `protect` already retrieved and attached the sanitized user to `req.user`,
+  `getMe` simply responds with `{ success: true, user: req.user }`.
+- No additional database queries are required at this stage.
+
+3.4. TOKEN & SESSION LIFECYCLE
+------------------------------
+- On signup or login (`sendTokenResponse`):
+  A JWT token is signed with `{ id: user._id }` and a 30-minute expiry (`expiresIn: '30m'`).
+  It is sent to the browser inside an HTTP-only cookie named `token`:
+  `{ httpOnly: true, maxAge: 30 * 60 * 1000, sameSite: 'lax', secure: false }`
+- Because it is `httpOnly: true`, client-side JavaScript cannot read or steal 
+  the raw token (preventing XSS token theft).
+- When `getMe` is called with `credentials: 'include'`, the browser sends this
+  cookie back to the backend automatically.
+
+================================================================================
+4. FRONTEND IMPLEMENTATION
+================================================================================
+
+4.1. API CLIENT HELPER (`getMe`)
+--------------------------------
+File: frontend/src/API/auth.js (Lines 49-55)
+Code:
+    export const getMe = async () => {
+      const res = await fetch(`${BASE_URL}/me`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+      return res.json();
+    };
+
+- `BASE_URL`: Evaluates to `/api/auth` (proxied by Vite to http://localhost:5000).
+- `credentials: 'include'`: Mandatory setting telling the browser fetch API
+  to transmit HTTP-only cookies with cross-origin or proxied requests.
+- Returns a Promise resolving to `{ success: true, user: {...} }` or error JSON.
+
+4.2. ROUTE PROTECTION & AUTH GUARD (`ProtectedRoute.jsx`)
+---------------------------------------------------------
+File: frontend/src/Components/ProtectedRoute.jsx
+Purpose: Secures pages like `/home`, `/search`, `/requests`, `/teams`, `/profile`, `/admin`.
+How it uses `getMe`:
+1. On component mounting (`useEffect`), invokes `verifySession()`:
+       const data = await getMe();
+       if (data && data.success) {
+         setIsAuthenticated(true);
+       } else {
+         setIsAuthenticated(false);
+       }
+2. While `isAuthenticated === null`, renders a full-screen loading spinner
+   ("Verifying session...").
+3. If verification fails (`isAuthenticated === false`), renders:
+   `<Navigate to="/" replace />` which bounces unauthenticated users back
+   to the login page.
+4. If verified, renders the child route components normally.
+
+4.3. NAVIGATION & DYNAMIC UI STATE (`Navbar.jsx`)
+-------------------------------------------------
+File: frontend/src/Components/Navbar.jsx
+Purpose: Dynamically render navigation items and user account options.
+How it uses `getMe`:
+1. Runs whenever `location.pathname` changes (or on initial load):
+       getMe()
+         .then((data) => {
+           if (data?.success && data.user) {
+             setCurrentUser(data.user);
+           } else {
+             setCurrentUser(null);
+           }
+         })
+2. Enables dynamic UI features:
+   - Admin Badge: Shows the ShieldCheck "Admin" link if `currentUser.role === 'admin'`.
+   - Sign Out vs Sign In: Shows "Sign Out" button if `currentUser` is present;
+     otherwise displays "Sign In".
+   - User Profile Bar (Mobile): Displays `currentUser.name`, `currentUser.email`,
+     and `currentUser.department` inside the mobile drawer menu.
+
+4.4. HOME DASHBOARD PERSONALIZATION (`Home.jsx`)
+------------------------------------------------
+File: frontend/src/Screens/User/Home.jsx
+Purpose: Student collaboration home dashboard.
+How it uses `getMe`:
+1. In `useEffect`, parallelizes data fetching using `Promise.all`:
+       const [meRes, peersRes, reqRes] = await Promise.all([
+         getMe(),
+         getPeers(),
+         getMyRequests(),
+       ]);
+2. Sets `currentUser(meRes.user)` to personalize statistics, greet the user,
+   and manage peer collaboration state.
+
+================================================================================
+5. REQUEST & RESPONSE LIFECYCLE (STEP-BY-STEP)
+================================================================================
+1. User logs in -> Backend creates JWT and sets `token` HTTP-only cookie.
+2. User navigates to `/home` or refreshes the page.
+3. React mounts `<ProtectedRoute>` wrapping `<Home />`.
+4. `ProtectedRoute` fires `getMe()`.
+5. Browser sends `GET /api/auth/me` with `Cookie: token=eyJhbGci...`.
+6. Express route receives request at `/api/auth/me`.
+7. `protect` middleware extracts `token` from the cookie.
+8. `protect` middleware calls `jwt.verify()`.
+9. `protect` fetches user from MongoDB by `decoded.id` (password excluded).
+10. `protect` assigns the document to `req.user` and calls `next()`.
+11. `getMe` controller returns JSON `{ success: true, user: req.user }`.
+12. Frontend `ProtectedRoute` receives `success: true`, updates state to
+    `isAuthenticated = true`, and displays the page.
+13. `Navbar` and `Home` receive the user data to populate UI elements.
+
+If the cookie is missing or the 30-minute session has expired:
+- `protect` middleware catches the failure and returns status 401.
+- Frontend `ProtectedRoute` sets `isAuthenticated = false`.
+- User is automatically redirected to the Login page (`/`).
+
+================================================================================
+6. SAMPLE REQUEST & RESPONSE PAYLOADS
+================================================================================
+
+A. SUCCESSFUL RESPONSE (HTTP 200 OK):
+-------------------------------------
+{
+  "success": true,
+  "user": {
+    "_id": "67049b1a5e12f489c9d01234",
+    "name": "Alex Johnson",
+    "email": "alex@maimt.com",
+    "department": "Computer Science & Engineering",
+    "skills": "React, Node.js, MongoDB, TailwindCSS",
+    "role": "user",
+    "openToWork": true,
+    "createdAt": "2026-10-10T09:15:30.123Z",
+    "updatedAt": "2026-10-12T14:22:10.456Z"
+  }
+}
+
+B. UNAUTHENTICATED RESPONSE (HTTP 401 Unauthorized - No Cookie):
+----------------------------------------------------------------
+{
+  "success": false,
+  "message": "Access denied. Please login."
+}
+
+C. EXPIRED SESSION RESPONSE (HTTP 401 Unauthorized - Expired JWT):
+------------------------------------------------------------------
+{
+  "success": false,
+  "message": "Session expired. Please login again."
+}
+
+================================================================================
+7. KEY BENEFITS & DESIGN RATIONALE
+================================================================================
+1. High Security (Prevents XSS):
+   Tokens are stored in `httpOnly` cookies rather than `localStorage`.
+   JavaScript running in the browser cannot read the token, protecting it from
+   cross-site scripting (XSS) attacks.
+
+2. Transparent Session Persistence:
+   When a user refreshes the browser, React in-memory state resets. Calling `getMe()`
+   immediately restores the user's session without requiring them to re-enter
+   their credentials.
+
+3. Role-Based Access Control (RBAC):
+   The user's role (`user` vs `admin`) is always verified directly against the
+   database in real time on the server, avoiding client-side spoofing.
+
+4. Decoupled & Reusable:
+   `getMe()` is a clean, single-purpose API endpoint that any component or service
+   can call to inspect the currently logged-in identity.
+
+================================================================================
+8. SUMMARY TABLE OF FILES & ROLES
+================================================================================
+File Path                                      Role / Action
+---------------------------------------------  ----------------------------------
+backend/routes/authRoutes.js (Line 13)         Defines GET /me route with protect & getMe
+backend/middlewares/authMiddleware.js (L19)    Validates cookie/JWT, loads user into req.user
+backend/controllers/authController.js (L125)   Returns { success: true, user: req.user }
+backend/server.js (Line 16)                    Mounts auth routes at /api/auth
+frontend/src/API/auth.js (Line 49)             Exports getMe() fetch helper function
+frontend/src/Components/ProtectedRoute.jsx      Guards routes and redirects if getMe() fails
+frontend/src/Components/Navbar.jsx             Updates user identity, role, and logout state
+frontend/src/Screens/User/Home.jsx             Loads user profile data for dashboard stats
+================================================================================
