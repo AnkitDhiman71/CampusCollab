@@ -21,13 +21,26 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/peers', peerRoutes);
 app.use('/api/contact', contactRoutes);
+// Serve static frontend files in production if frontend/dist exists
+const fs = require('fs');
 const os = require('os');
-app.get('/', (req, res) => res.json({ 
-  success: true, 
-  message: 'CampusCollab Backend API Running',
-  workerContainerId: os.hostname(),
-  timestamp: new Date().toISOString()
-}));
+const frontendDist = path.join(__dirname, '../frontend/dist');
+if (fs.existsSync(frontendDist)) {
+  app.use(express.static(frontendDist));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
+      return next();
+    }
+    res.sendFile(path.join(frontendDist, 'index.html'));
+  });
+} else {
+  app.get('/', (req, res) => res.json({ 
+    success: true, 
+    message: 'CampusCollab Backend API Running',
+    workerContainerId: os.hostname(),
+    timestamp: new Date().toISOString()
+  }));
+}
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/campusCollab';
 const { seedDefaultQuestionsIfNeeded } = require('./controllers/questionController');
