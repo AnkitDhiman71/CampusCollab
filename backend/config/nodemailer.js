@@ -8,23 +8,44 @@ const isAdminEmail = (email) => {
   return cleanEmail === configuredAdmin;
 };
 
+let cachedTransporter = null;
+
 const getTransporter = () => {
+  if (cachedTransporter) return cachedTransporter;
+
   const user = (process.env.EMAIL_USER || '').trim();
   const pass = (process.env.EMAIL_PASS || '').replace(/\s+/g, '').trim();
 
   if (process.env.EMAIL_HOST) {
-    return nodemailer.createTransport({
+    cachedTransporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
-      port: process.env.EMAIL_PORT || 587,
+      port: parseInt(process.env.EMAIL_PORT, 10) || 587,
       secure: process.env.EMAIL_SECURE === 'true',
       auth: { user, pass },
+      pool: true,
+      maxConnections: 5,
+      connectionTimeout: 8000,
+      greetingTimeout: 8000,
+      socketTimeout: 10000,
     });
+    return cachedTransporter;
   }
 
-  return nodemailer.createTransport({
-    service: 'gmail',
+  // Fast direct SSL connection on port 465 (avoids cloud port 587 STARTTLS throttling/delays)
+  cachedTransporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 100,
     auth: { user, pass },
+    connectionTimeout: 8000,
+    greetingTimeout: 8000,
+    socketTimeout: 10000,
   });
+
+  return cachedTransporter;
 };
 
 const sendOtpEmail = async (email, otp) => {
@@ -36,6 +57,7 @@ const sendOtpEmail = async (email, otp) => {
   const pass = (process.env.EMAIL_PASS || '').replace(/\s+/g, '').trim();
 
   if (!user || !pass) {
+    console.log(`[Email Service] Warning: EMAIL_USER or EMAIL_PASS not configured. Dev OTP: ${otp}`);
     return { success: true, devMode: true, otp };
   }
 
@@ -60,8 +82,10 @@ const sendOtpEmail = async (email, otp) => {
 
   try {
     const info = await transporter.sendMail(mailOptions);
+    console.log(`[Email Service] OTP successfully delivered to ${email}, MessageId: ${info.messageId}`);
     return { success: true, messageId: info.messageId };
   } catch (error) {
+    console.error(`[Email Service Error] Failed to send OTP to ${email}:`, error.message);
     return { success: true, devMode: true, warning: error.message, otp };
   }
 };
