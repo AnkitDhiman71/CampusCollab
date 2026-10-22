@@ -20,16 +20,20 @@ function runLocally({ code, language, stdin = '' }) {
   return new Promise((resolve, reject) => {
     const id = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const normLang = (language || '').toLowerCase().trim();
+    const isWindows = process.platform === 'win32';
 
     if (normLang === 'c') {
       const srcFile = path.join(TEMP_EXEC_DIR, `run_${id}.c`);
-      const exeFile = path.join(TEMP_EXEC_DIR, `run_${id}.exe`);
+      const exeFile = path.join(TEMP_EXEC_DIR, isWindows ? `run_${id}.exe` : `run_${id}`);
       fs.writeFileSync(srcFile, code, 'utf8');
 
       // Compile with GCC
       execFile('gcc', [srcFile, '-o', exeFile], { timeout: 6000 }, (compileErr, compileStdout, compileStderr) => {
         if (compileErr) {
           try { fs.unlinkSync(srcFile); } catch (e) {}
+          if (compileErr.code === 'ENOENT') {
+            return reject(new Error('GCC compiler not installed on host'));
+          }
           return resolve({
             success: false,
             isCompileError: true,
@@ -53,13 +57,16 @@ function runLocally({ code, language, stdin = '' }) {
       });
     } else if (normLang === 'cpp' || normLang === 'c++') {
       const srcFile = path.join(TEMP_EXEC_DIR, `run_${id}.cpp`);
-      const exeFile = path.join(TEMP_EXEC_DIR, `run_${id}.exe`);
+      const exeFile = path.join(TEMP_EXEC_DIR, isWindows ? `run_${id}.exe` : `run_${id}`);
       fs.writeFileSync(srcFile, code, 'utf8');
 
       // Compile with G++
       execFile('g++', [srcFile, '-o', exeFile], { timeout: 7000 }, (compileErr, compileStdout, compileStderr) => {
         if (compileErr) {
           try { fs.unlinkSync(srcFile); } catch (e) {}
+          if (compileErr.code === 'ENOENT') {
+            return reject(new Error('G++ compiler not installed on host'));
+          }
           return resolve({
             success: false,
             isCompileError: true,
@@ -84,8 +91,12 @@ function runLocally({ code, language, stdin = '' }) {
       const srcFile = path.join(TEMP_EXEC_DIR, `run_${id}.py`);
       fs.writeFileSync(srcFile, code, 'utf8');
 
-      runProcessWithStdin('python', [srcFile], stdin, 5000, (err, stdout, stderr, exitCode) => {
+      const pyBin = isWindows ? 'python' : 'python3';
+      runProcessWithStdin(pyBin, [srcFile], stdin, 5000, (err, stdout, stderr, exitCode) => {
         try { fs.unlinkSync(srcFile); } catch (e) {}
+        if (err && err.code === 'ENOENT') {
+          return reject(new Error('Python not installed on host'));
+        }
         resolve({
           success: exitCode === 0,
           language: 'Python 3 (Local)',

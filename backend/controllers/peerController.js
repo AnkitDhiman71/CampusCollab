@@ -565,16 +565,36 @@ const assignTechnicalTest = async (req, res) => {
       return res.status(403).json({ success: false, message: 'You are not authorized on this request.' });
     }
 
-    const isTeamLead = request.requestType === 'team_join_request' ? isRecipient : isSender;
-    if (!isTeamLead) {
-      return res.status(403).json({ success: false, message: 'Only the team lead can assign technical assessments.' });
-    }
+    let evaluatorUser;
+    let candidateUser;
 
-    const candidateUser = request.requestType === 'team_join_request' ? request.sender : request.recipient;
-    const teamLeadUser = request.requestType === 'team_join_request' ? request.recipient : request.sender;
+    if (request.requestType === 'team_join_request') {
+      if (!isRecipient) {
+        return res.status(403).json({ success: false, message: 'Only the team lead can assign technical assessments to applicants.' });
+      }
+      evaluatorUser = request.recipient;
+      candidateUser = request.sender;
+    } else if (request.requestType === 'team_invite') {
+      if (!isSender) {
+        return res.status(403).json({ success: false, message: 'Only the team lead who sent the invitation can assign technical assessments.' });
+      }
+      evaluatorUser = request.sender;
+      candidateUser = request.recipient;
+    } else {
+      // Direct peer collaboration request: either party can assign a screening test
+      if (isRecipient) {
+        evaluatorUser = request.recipient;
+        candidateUser = request.sender;
+      } else {
+        evaluatorUser = request.sender;
+        candidateUser = request.recipient;
+      }
+    }
 
     request.testDetails = {
       isAssigned: true,
+      assignedBy: evaluatorUser._id,
+      candidate: candidateUser._id,
       title: title.trim(),
       description: description.trim(),
       language: language.toLowerCase().trim() || 'javascript',
@@ -594,15 +614,15 @@ const assignTechnicalTest = async (req, res) => {
 
     await request.save();
 
-    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
-    const testUrl = `${clientUrl}/test/${request._id}`;
+    const clientUrl = process.env.CLIENT_URL || process.env.RENDER_EXTERNAL_URL || 'https://campuscollab.onrender.com';
+    const testUrl = `${clientUrl.replace(/\/+$/, '')}/test/${request._id}`;
 
     if (candidateUser?.email) {
       sendTechnicalTestAssignedEmail({
         toEmail: candidateUser.email,
         candidateName: candidateUser.name || 'Candidate',
-        teamLeadName: teamLeadUser?.name || 'Team Lead',
-        teamTitle: request.team?.title || 'Project Team',
+        teamLeadName: evaluatorUser?.name || 'Team Lead',
+        teamTitle: request.team?.title || 'Collaboration Project',
         testTitle: title.trim(),
         timeLimitMinutes: Number(timeLimitMinutes) || 30,
         testUrl,
@@ -644,15 +664,20 @@ const getTechnicalTest = async (req, res) => {
       return res.status(400).json({ success: false, message: 'No technical assessment has been assigned for this request.' });
     }
 
-    const isApplicant = request.requestType === 'team_join_request' ? isSender : isRecipient;
+    const candidateId = request.testDetails?.candidate?.toString() || 
+      (request.requestType === 'team_join_request' ? request.sender?._id?.toString() : request.recipient?._id?.toString());
+    const isApplicant = currentUserId === candidateId;
+
+    const candidateDoc = candidateId === request.sender?._id?.toString() ? request.sender : request.recipient;
+    const teamLeadDoc = candidateId === request.sender?._id?.toString() ? request.recipient : request.sender;
 
     return res.json({
       success: true,
       test: request.testDetails,
       team: request.team,
       isApplicant,
-      candidate: request.requestType === 'team_join_request' ? request.sender : request.recipient,
-      teamLead: request.requestType === 'team_join_request' ? request.recipient : request.sender,
+      candidate: candidateDoc,
+      teamLead: teamLeadDoc,
       role: request.role,
       requestStatus: request.status,
     });
@@ -678,9 +703,10 @@ const startTechnicalTest = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Access denied.' });
     }
 
-    const isCandidate = request.requestType === 'team_join_request' ? isSender : isRecipient;
-    if (!isCandidate) {
-      return res.status(403).json({ success: false, message: 'Only the candidate joining the team can take this assessment.' });
+    const candidateId = request.testDetails?.candidate?.toString() || 
+      (request.requestType === 'team_join_request' ? request.sender?.toString() : request.recipient?.toString());
+    if (currentUserId !== candidateId) {
+      return res.status(403).json({ success: false, message: 'Only the candidate assigned to this assessment can take it.' });
     }
 
     if (request.testDetails.status === 'pending') {
@@ -724,9 +750,10 @@ const submitTechnicalTest = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Unauthorized submission.' });
     }
 
-    const isCandidate = request.requestType === 'team_join_request' ? isSender : isRecipient;
-    if (!isCandidate) {
-      return res.status(403).json({ success: false, message: 'Only the candidate joining the team can submit this assessment.' });
+    const candidateId = request.testDetails?.candidate?.toString() || 
+      (request.requestType === 'team_join_request' ? request.sender?.toString() : request.recipient?.toString());
+    if (currentUserId !== candidateId) {
+      return res.status(403).json({ success: false, message: 'Only the candidate assigned to this assessment can submit it.' });
     }
 
     request.testDetails.submittedCode = submittedCode;
@@ -803,9 +830,10 @@ const reviewTechnicalTest = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Access denied.' });
     }
 
-    const isTeamLead = request.requestType === 'team_join_request' ? isRecipient : isSender;
-    if (!isTeamLead) {
-      return res.status(403).json({ success: false, message: 'Only the team lead can review this assessment.' });
+    const assignedById = request.testDetails?.assignedBy?.toString() || 
+      (request.requestType === 'team_join_request' ? request.recipient?.toString() : request.sender?.toString());
+    if (currentUserId !== assignedById) {
+      return res.status(403).json({ success: false, message: 'Only the reviewer who assigned this assessment can review it.' });
     }
 
     if (score !== undefined) request.testDetails.score = score;

@@ -80,6 +80,14 @@ const requestSchema = new mongoose.Schema(
         type: Boolean,
         default: false,
       },
+      assignedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+      candidate: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
       title: {
         type: String,
         default: '',

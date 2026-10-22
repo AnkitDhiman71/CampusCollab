@@ -780,10 +780,14 @@ console.log(solution());
 
                       {/* Technical Coding Assessment Row */}
                       {(() => {
-                        const isTeamLead = req.team && req.requestType === 'team_join_request';
-                        const isCandidate = req.team && req.requestType === 'team_invite';
+                        const myId = currentUser?._id || currentUser?.id;
+                        const isAssigned = Boolean(req.testDetails?.isAssigned);
+                        const isEvaluator = isAssigned
+                          ? (req.testDetails?.assignedBy ? String(req.testDetails.assignedBy) === String(myId) : req.requestType === 'team_join_request')
+                          : (req.requestType !== 'team_invite');
+                        const isCandidate = isAssigned && !isEvaluator;
 
-                        if (isTeamLead) {
+                        if (isEvaluator) {
                           return req.testDetails?.isAssigned ? (
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl bg-orange-500/10 border border-orange-500/25">
                               <div className="flex items-center gap-2.5 min-w-0">
@@ -880,7 +884,7 @@ console.log(solution());
                                     </span>
                                     <span className="text-[11px] text-white/50">{req.testDetails.timeLimitMinutes} mins</span>
                                   </div>
-                                  <p className="text-[11px] text-white/60">Assigned by Team Lead &bull; Proctored VS Code</p>
+                                  <p className="text-[11px] text-white/60">Assigned by {req.name || 'Peer Evaluator'} &bull; Proctored VS Code</p>
                                 </div>
                               </div>
 
@@ -1133,10 +1137,14 @@ console.log(solution());
 
                       {/* Technical Coding Assessment Row */}
                       {(() => {
-                        const isTeamLead = req.team && req.requestType === 'team_invite';
-                        const isCandidate = req.team && req.requestType === 'team_join_request';
+                        const myId = currentUser?._id || currentUser?.id;
+                        const isAssigned = Boolean(req.testDetails?.isAssigned);
+                        const isEvaluator = isAssigned
+                          ? (req.testDetails?.assignedBy ? String(req.testDetails.assignedBy) === String(myId) : req.requestType !== 'team_join_request')
+                          : (req.requestType !== 'team_join_request');
+                        const isCandidate = isAssigned && !isEvaluator;
 
-                        if (isTeamLead) {
+                        if (isEvaluator) {
                           return req.testDetails?.isAssigned ? (
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl bg-orange-500/10 border border-orange-500/25">
                               <div className="flex items-center gap-2.5 min-w-0">
@@ -1233,7 +1241,7 @@ console.log(solution());
                                     </span>
                                     <span className="text-[11px] text-white/50">{req.testDetails.timeLimitMinutes} mins</span>
                                   </div>
-                                  <p className="text-[11px] text-white/60">Assigned by Team Lead &bull; Proctored VS Code</p>
+                                  <p className="text-[11px] text-white/60">Assigned by {req.name || 'Peer Evaluator'} &bull; Proctored VS Code</p>
                                 </div>
                               </div>
 
