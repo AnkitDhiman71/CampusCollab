@@ -29,6 +29,7 @@ import {
   FileCode,
   Maximize2,
   Play,
+  RotateCw,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getMyRequests, updateRequestStatus, requestPeerInteraction, deleteRequest, assignTechnicalTest, reviewTechnicalTest, getAssessmentQuestions, aiEvaluateAssessment } from '../../API/peers';
@@ -394,8 +395,11 @@ console.log(solution());
     }
   };
 
-  const loadRequests = async () => {
-    setLoading(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadRequests = async (silent = false) => {
+    if (!silent) setLoading(true);
+    else setRefreshing(true);
     setFetchError('');
     try {
       const [data, me, qRes] = await Promise.all([
@@ -413,18 +417,23 @@ console.log(solution());
         setIncoming(data.incoming || []);
         setSent(data.sent || []);
       } else {
-        setFetchError(data?.message || 'Failed to load requests. Your session may have expired — please sign in again.');
+        if (!silent) setFetchError(data?.message || 'Failed to load requests. Your session may have expired — please sign in again.');
       }
     } catch (err) {
       console.error('Failed to load requests:', err);
-      setFetchError('Network error. Could not connect to the server.');
+      if (!silent) setFetchError('Network error. Could not connect to the server.');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
+      setRefreshing(false);
     }
   };
 
   useEffect(() => {
     loadRequests();
+    const interval = setInterval(() => {
+      loadRequests(true);
+    }, 15000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleRespond = async (id, status) => {
@@ -529,9 +538,20 @@ console.log(solution());
             </p>
           </div>
           {currentUser && (
-            <div className="px-4 py-2 rounded-2xl glass-tile text-xs font-semibold text-white/90 flex items-center gap-2.5 shrink-0">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-sm shadow-emerald-400"></span>
-              <span>Logged in as: <strong className="text-white">{currentUser.name}</strong></span>
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="px-4 py-2 rounded-2xl glass-tile text-xs font-semibold text-white/90 flex items-center gap-2.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-sm shadow-emerald-400"></span>
+                <span>Logged in as: <strong className="text-white">{currentUser.name}</strong></span>
+              </div>
+              <button
+                type="button"
+                onClick={() => loadRequests()}
+                disabled={loading || refreshing}
+                className="p-2.5 rounded-2xl glass-tile text-white/70 hover:text-white hover:bg-white/10 transition-all cursor-pointer disabled:opacity-50"
+                title="Sync / Refresh requests"
+              >
+                <RotateCw className={`w-3.5 h-3.5 ${refreshing || loading ? 'animate-spin text-amber-300' : ''}`} />
+              </button>
             </div>
           )}
         </div>
@@ -782,10 +802,30 @@ console.log(solution());
                       {(() => {
                         const myId = currentUser?._id || currentUser?.id;
                         const isAssigned = Boolean(req.testDetails?.isAssigned);
-                        const isEvaluator = isAssigned
-                          ? (req.testDetails?.assignedBy ? String(req.testDetails.assignedBy) === String(myId) : req.requestType === 'team_join_request')
-                          : (req.requestType !== 'team_invite');
-                        const isCandidate = isAssigned && !isEvaluator;
+                        
+                        let isEvaluator = false;
+                        let isCandidate = false;
+
+                        if (isAssigned) {
+                          if (req.testDetails?.assignedBy) {
+                            isEvaluator = String(req.testDetails.assignedBy) === String(myId);
+                            isCandidate = !isEvaluator;
+                          } else if (req.testDetails?.candidate) {
+                            isCandidate = String(req.testDetails.candidate) === String(myId);
+                            isEvaluator = !isCandidate;
+                          } else {
+                            isEvaluator = req.requestType === 'team_join_request';
+                            isCandidate = !isEvaluator;
+                          }
+                        } else {
+                          // Before assignment:
+                          // In incoming tab (recipient is current user):
+                          // - team_join_request: Recipient is team lead -> Evaluator (sees "Assign Test")
+                          // - team_invite: Recipient is candidate being invited -> Candidate (sees "Awaiting Assignment")
+                          // - peer: Recipient is evaluator of incoming request -> Evaluator (sees "Assign Test")
+                          isEvaluator = req.requestType !== 'team_invite';
+                          isCandidate = !isEvaluator;
+                        }
 
                         if (isEvaluator) {
                           return req.testDetails?.isAssigned ? (
@@ -869,8 +909,8 @@ console.log(solution());
                           );
                         }
 
-                        if (isCandidate && req.testDetails?.isAssigned) {
-                          return (
+                        if (isCandidate) {
+                          return req.testDetails?.isAssigned ? (
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl bg-orange-500/10 border border-orange-500/30 shadow-md">
                               <div className="flex items-center gap-2.5 min-w-0">
                                 <div className="w-8 h-8 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center shrink-0">
@@ -907,6 +947,21 @@ console.log(solution());
                                   </span>
                                 )}
                               </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-between gap-3 p-2.5 px-3.5 rounded-2xl bg-white/[0.02] border border-white/10">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="w-7 h-7 rounded-lg bg-white/[0.05] text-white/50 flex items-center justify-center shrink-0">
+                                  <Code className="w-3.5 h-3.5 text-white/60" />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-xs font-semibold text-white/80 truncate">Coding Assessment</p>
+                                  <p className="text-[11px] text-white/50 truncate">Optional assessment not assigned yet by {req.name || 'evaluator'}. The "Launch Test" button will appear here once assigned.</p>
+                                </div>
+                              </div>
+                              <span className="px-2.5 py-1 rounded-xl bg-white/[0.04] border border-white/10 text-white/50 text-[11px] font-semibold shrink-0">
+                                Awaiting Assignment
+                              </span>
                             </div>
                           );
                         }
@@ -1139,10 +1194,30 @@ console.log(solution());
                       {(() => {
                         const myId = currentUser?._id || currentUser?.id;
                         const isAssigned = Boolean(req.testDetails?.isAssigned);
-                        const isEvaluator = isAssigned
-                          ? (req.testDetails?.assignedBy ? String(req.testDetails.assignedBy) === String(myId) : req.requestType !== 'team_join_request')
-                          : (req.requestType !== 'team_join_request');
-                        const isCandidate = isAssigned && !isEvaluator;
+
+                        let isEvaluator = false;
+                        let isCandidate = false;
+
+                        if (isAssigned) {
+                          if (req.testDetails?.assignedBy) {
+                            isEvaluator = String(req.testDetails.assignedBy) === String(myId);
+                            isCandidate = !isEvaluator;
+                          } else if (req.testDetails?.candidate) {
+                            isCandidate = String(req.testDetails.candidate) === String(myId);
+                            isEvaluator = !isCandidate;
+                          } else {
+                            isEvaluator = req.requestType === 'team_invite';
+                            isCandidate = !isEvaluator;
+                          }
+                        } else {
+                          // Before assignment:
+                          // In sent tab (sender is current user):
+                          // - team_invite: Sender is team lead inviting someone -> Evaluator (sees "Assign Test")
+                          // - team_join_request: Sender is applicant wanting to join -> Candidate (sees "Awaiting Assignment")
+                          // - peer: Sender can screen recipient -> Evaluator (sees "Assign Test")
+                          isEvaluator = req.requestType !== 'team_join_request';
+                          isCandidate = !isEvaluator;
+                        }
 
                         if (isEvaluator) {
                           return req.testDetails?.isAssigned ? (
@@ -1226,8 +1301,8 @@ console.log(solution());
                           );
                         }
 
-                        if (isCandidate && req.testDetails?.isAssigned) {
-                          return (
+                        if (isCandidate) {
+                          return req.testDetails?.isAssigned ? (
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl bg-orange-500/10 border border-orange-500/30 shadow-md">
                               <div className="flex items-center gap-2.5 min-w-0">
                                 <div className="w-8 h-8 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center shrink-0">
@@ -1264,6 +1339,21 @@ console.log(solution());
                                   </span>
                                 )}
                               </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-between gap-3 p-2.5 px-3.5 rounded-2xl bg-white/[0.02] border border-white/10">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="w-7 h-7 rounded-lg bg-white/[0.05] text-white/50 flex items-center justify-center shrink-0">
+                                  <Code className="w-3.5 h-3.5 text-white/60" />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-xs font-semibold text-white/80 truncate">Coding Assessment</p>
+                                  <p className="text-[11px] text-white/50 truncate">Waiting for team lead {req.name || ''} to review or assign technical test. The "Launch Test" button will appear here once assigned.</p>
+                                </div>
+                              </div>
+                              <span className="px-2.5 py-1 rounded-xl bg-white/[0.04] border border-white/10 text-white/50 text-[11px] font-semibold shrink-0">
+                                Awaiting Assignment
+                              </span>
                             </div>
                           );
                         }
