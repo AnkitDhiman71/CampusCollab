@@ -84,6 +84,276 @@ const getCalendarUrl = (req) => {
   }
 };
 
+const FALLBACK_LANG_PRESETS = {
+  c: {
+    title: 'C (GCC) Algorithmic Screening',
+    duration: 20,
+    desc: `Problem Statement:\nImplement the required function or algorithm in C (GCC).\n\nRequirements:\n1. Use standard C11 library functions (stdio.h, string.h, stdlib.h).\n2. Use pointer manipulation for in-place modifications where applicable.\n\nSample Test Cases:\nInput: Standard input / parameters\nExpected Output: Correct stdout printed via printf()`,
+    starter: `#include <stdio.h>\n#include <string.h>\n\n// Function implementation in C\nvoid solution() {\n    printf("C Test Solution Output\\n");\n}\n\nint main() {\n    solution();\n    return 0;\n}\n`,
+  },
+  cpp: {
+    title: 'C++ Algorithmic Screening',
+    duration: 20,
+    desc: `Problem Statement:\nImplement the required algorithm in C++.\n\nSample Test Cases:\nInput: Standard input / parameters\nExpected Output: Output printed via std::cout`,
+    starter: `#include <iostream>\n#include <vector>\n#include <string>\n\nusing namespace std;\n\nint main() {\n    // Write your C++ solution here\n    cout << "C++ Test Solution Output" << endl;\n    return 0;\n}\n`,
+  },
+  python: {
+    title: 'Python Algorithmic Screening',
+    duration: 25,
+    desc: `Problem Statement:\nImplement the required algorithm or data processing function in Python 3.\n\nSample Test Cases:\nInput: Function parameters or input()\nExpected Output: Returned value or print() output`,
+    starter: `def solution():\n    # Write your Python solution here\n    print("Python Test Solution Output")\n\nif __name__ == "__main__":\n    solution()\n`,
+  },
+  javascript: {
+    title: 'JavaScript Algorithm Screening',
+    duration: 30,
+    desc: `Problem Statement:\nImplement the required JavaScript function.\n\nSample Test Cases:\nInput: Function arguments\nExpected Output: Return value or console.log()`,
+    starter: `function solution() {\n  // Write your code here\n  return "JavaScript Output";\n}\n\nconsole.log(solution());\n`,
+  },
+};
+
+const VideoSyncRow = ({ req, onOpenInteraction }) => {
+  if (req.scheduledDate && req.scheduledTime) {
+    const cd = getMeetingCountdown(req.scheduledDate, req.scheduledTime);
+    return (
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/25">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center shrink-0">
+            <Video className="w-4 h-4" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-bold text-white">
+                {req.scheduledDate} at {req.scheduledTime}
+              </span>
+              <span className="text-[11px] text-white/60">
+                ({req.duration || 30}m &bull; {req.timezone || 'IST'})
+              </span>
+              {cd && (
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  cd.status === 'live' ? 'bg-emerald-500/25 text-emerald-300 animate-pulse' : 'bg-amber-400/20 text-amber-300'
+                }`}>
+                  {cd.text}
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-white/50">Scheduled Video Call</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {req.meetingLink && (
+            <a
+              href={req.meetingLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-300 hover:to-orange-300 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-sm transition-all"
+            >
+              <Video className="w-3.5 h-3.5" /> Join Room
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          )}
+          <button
+            type="button"
+            onClick={() => onOpenInteraction(req)}
+            className="px-2.5 py-1.5 rounded-xl text-white/60 hover:text-white font-medium text-xs transition-all cursor-pointer"
+          >
+            Reschedule
+          </button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center justify-between gap-3 p-2.5 px-3.5 rounded-2xl bg-white/[0.02] border border-white/10 hover:border-amber-400/30 transition-all">
+      <div className="flex items-center gap-2.5 min-w-0">
+        <div className="w-7 h-7 rounded-lg bg-amber-400/10 text-amber-400 flex items-center justify-center shrink-0">
+          <Video className="w-3.5 h-3.5" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs font-semibold text-white/90 truncate">Video Sync</p>
+          <p className="text-[11px] text-white/50 truncate">Optional: Meet with {req.name} to discuss before deciding</p>
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={() => onOpenInteraction(req)}
+        className="px-3 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-amber-300 border border-amber-400/30 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
+      >
+        <Calendar className="w-3.5 h-3.5" />
+        <span>Schedule Sync</span>
+      </button>
+    </div>
+  );
+};
+
+const AssessmentRow = ({ req, currentUserId, tab, onOpenAssign, onOpenReview }) => {
+  const isAssigned = Boolean(req.testDetails?.isAssigned);
+  let isEvaluator = false;
+  let isCandidate = false;
+
+  if (isAssigned) {
+    if (req.testDetails?.assignedBy) {
+      isEvaluator = String(req.testDetails.assignedBy) === String(currentUserId);
+      isCandidate = !isEvaluator;
+    } else if (req.testDetails?.candidate) {
+      isCandidate = String(req.testDetails.candidate) === String(currentUserId);
+      isEvaluator = !isCandidate;
+    } else {
+      isEvaluator = tab === 'incoming' ? req.requestType === 'team_join_request' : req.requestType !== 'team_join_request';
+      isCandidate = !isEvaluator;
+    }
+  } else {
+    // Before assignment:
+    // In incoming tab (recipient): only team_join_request recipient is the evaluator/assigner
+    // In sent tab (sender): team_invite and peer sender is the evaluator/assigner
+    isEvaluator = tab === 'incoming' ? req.requestType === 'team_join_request' : req.requestType !== 'team_join_request';
+    isCandidate = !isEvaluator;
+  }
+
+  if (isEvaluator) {
+    return req.testDetails?.isAssigned ? (
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl bg-orange-500/10 border border-orange-500/25">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center shrink-0">
+            <Terminal className="w-4 h-4" />
+          </div>
+          <div className="min-w-0 space-y-0.5">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-bold text-white truncate">{req.testDetails.title}</span>
+              <span className="px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300 border border-orange-500/30 text-[10px] uppercase font-bold">
+                {req.testDetails.language}
+              </span>
+              <span className="text-[11px] text-white/50">{req.testDetails.timeLimitMinutes}m limit</span>
+              {req.testDetails.violationsCount > 0 && (
+                <span className="text-red-400 font-bold text-[11px]">&bull; {req.testDetails.violationsCount} violations</span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {req.testDetails.status === 'completed' && (
+                <span className="text-emerald-400 text-[11px] font-bold flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3" /> Submitted & Ready for Review
+                </span>
+              )}
+              {req.testDetails.status === 'terminated_violations' && (
+                <span className="text-red-400 text-[11px] font-bold flex items-center gap-1">
+                  <ShieldAlert className="w-3 h-3" /> Terminated (Violations Policy)
+                </span>
+              )}
+              {req.testDetails.status === 'in_progress' && (
+                <span className="text-amber-400 text-[11px] font-bold flex items-center gap-1">
+                  <Loader2 className="w-3 h-3 animate-spin" /> In Progress by Candidate
+                </span>
+              )}
+              {req.testDetails.status === 'pending' && (
+                <span className="text-white/50 text-[11px]">Pending Candidate Start</span>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {(req.testDetails.status === 'completed' || req.testDetails.status === 'terminated_violations') && (
+            <button
+              type="button"
+              onClick={() => onOpenReview(req)}
+              className="px-3 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+            >
+              <FileCode className="w-3.5 h-3.5" /> Review Code
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => onOpenAssign(req)}
+            className="px-2.5 py-1.5 rounded-xl text-white/60 hover:text-white font-medium text-xs transition-all cursor-pointer"
+          >
+            Edit Test
+          </button>
+        </div>
+      </div>
+    ) : (
+      <div className="flex items-center justify-between gap-3 p-2.5 px-3.5 rounded-2xl bg-white/[0.02] border border-white/10 hover:border-orange-500/30 transition-all">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-7 h-7 rounded-lg bg-orange-500/10 text-orange-400 flex items-center justify-center shrink-0">
+            <Code className="w-3.5 h-3.5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-white/90 truncate">Coding Assessment</p>
+            <p className="text-[11px] text-white/50 truncate">Optional: Screen {req.name} in a fullscreen VS Code environment</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => onOpenAssign(req)}
+          className="px-3 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-orange-400 border border-orange-500/30 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
+        >
+          <Code className="w-3.5 h-3.5" />
+          <span>Assign Test</span>
+        </button>
+      </div>
+    );
+  }
+
+  if (isCandidate) {
+    return req.testDetails?.isAssigned ? (
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl bg-orange-500/10 border border-orange-500/30 shadow-md">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center shrink-0">
+            <Terminal className="w-4 h-4" />
+          </div>
+          <div className="min-w-0 space-y-0.5">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-bold text-white truncate">{req.testDetails.title}</span>
+              <span className="px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300 border border-orange-500/30 text-[10px] uppercase font-bold">
+                {req.testDetails.language}
+              </span>
+              <span className="text-[11px] text-white/50">{req.testDetails.timeLimitMinutes} mins</span>
+            </div>
+            <p className="text-[11px] text-white/60">Assigned by {req.name || 'Peer Evaluator'} &bull; Proctored VS Code</p>
+          </div>
+        </div>
+        <div className="shrink-0">
+          {req.testDetails.status === 'pending' || req.testDetails.status === 'in_progress' ? (
+            <button
+              type="button"
+              onClick={() => window.open(`/test/${req.id}`, '_blank')}
+              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+            >
+              <Maximize2 className="w-3.5 h-3.5" />
+              <span>{req.testDetails.status === 'in_progress' ? 'Resume Test' : 'Launch Test'}</span>
+            </button>
+          ) : req.testDetails.status === 'completed' ? (
+            <span className="px-2.5 py-1 rounded-xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-xs font-bold flex items-center gap-1">
+              <CheckCircle2 className="w-3 h-3" /> Submitted
+            </span>
+          ) : (
+            <span className="px-2.5 py-1 rounded-xl bg-red-500/20 border border-red-500/40 text-red-300 text-xs font-bold flex items-center gap-1">
+              <ShieldAlert className="w-3 h-3" /> Terminated (Violations)
+            </span>
+          )}
+        </div>
+      </div>
+    ) : (
+      <div className="flex items-center justify-between gap-3 p-2.5 px-3.5 rounded-2xl bg-white/[0.02] border border-white/10">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-7 h-7 rounded-lg bg-white/[0.05] text-white/50 flex items-center justify-center shrink-0">
+            <Code className="w-3.5 h-3.5 text-white/60" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-white/80 truncate">Coding Assessment</p>
+            <p className="text-[11px] text-white/50 truncate">
+              {tab === 'incoming' 
+                ? `Optional assessment not assigned yet by ${req.name || 'evaluator'}. The "Launch Test" button will appear here once assigned.`
+                : `Waiting for team lead ${req.name || ''} to review or assign technical test. The "Launch Test" button will appear here once assigned.`}
+            </p>
+          </div>
+        </div>
+        <span className="px-2.5 py-1 rounded-xl bg-white/[0.04] border border-white/10 text-white/50 text-[11px] font-semibold shrink-0">
+          Awaiting Assignment
+        </span>
+      </div>
+    );
+  }
+
+  return null;
+};
 
 export function Requests() {
   const navigate = useNavigate();
@@ -203,102 +473,11 @@ int main() {
     }
 
     // 2. Unconditional fallback boilerplate and test cases for this specific language
-    if (newLang === 'c') {
-      setTestTitle('C (GCC) Algorithmic Screening');
-      setTestDesc(
-`Problem Statement:
-Implement the required function or algorithm in C (GCC).
-
-Requirements:
-1. Use standard C11 library functions (stdio.h, string.h, stdlib.h).
-2. Use pointer manipulation for in-place modifications where applicable.
-
-Sample Test Cases:
-Input: Standard input / parameters
-Expected Output: Correct stdout printed via printf()`
-      );
-      setTestStarter(
-`#include <stdio.h>
-#include <string.h>
-
-// Function implementation in C
-void solution() {
-    printf("C Test Solution Output\\n");
-}
-
-int main() {
-    solution();
-    return 0;
-}
-`
-      );
-      setTestDuration(20);
-    } else if (newLang === 'cpp') {
-      setTestTitle('C++ Algorithmic Screening');
-      setTestDesc(
-`Problem Statement:
-Implement the required algorithm in C++.
-
-Sample Test Cases:
-Input: Standard input / parameters
-Expected Output: Output printed via std::cout`
-      );
-      setTestStarter(
-`#include <iostream>
-#include <vector>
-#include <string>
-
-using namespace std;
-
-int main() {
-    // Write your C++ solution here
-    cout << "C++ Test Solution Output" << endl;
-    return 0;
-}
-`
-      );
-      setTestDuration(20);
-    } else if (newLang === 'python') {
-      setTestTitle('Python Algorithmic Screening');
-      setTestDesc(
-`Problem Statement:
-Implement the required algorithm or data processing function in Python 3.
-
-Sample Test Cases:
-Input: Function parameters or input()
-Expected Output: Returned value or print() output`
-      );
-      setTestStarter(
-`def solution():
-    # Write your Python solution here
-    print("Python Test Solution Output")
-
-if __name__ == "__main__":
-    solution()
-`
-      );
-      setTestDuration(25);
-    } else {
-      setTestTitle('JavaScript Algorithm Screening');
-      setTestDesc(
-`Problem Statement:
-Implement the required JavaScript function.
-
-Sample Test Cases:
-Input: Function arguments
-Expected Output: Return value or console.log()`
-      );
-      setTestStarter(
-`function solution() {
-  // Write your code here
-  return "JavaScript Output";
-}
-
-console.log(solution());
-`
-      );
-      setTestDuration(30);
-    }
+    const preset = FALLBACK_LANG_PRESETS[newLang] || FALLBACK_LANG_PRESETS.javascript;
+    setTestTitle(preset.title);
+    setTestDesc(preset.desc);
+    setTestStarter(preset.starter);
+    setTestDuration(preset.duration);
   };
 
   const handleSendTestAssignment = async () => {
@@ -725,248 +904,14 @@ console.log(solution());
 
                     {/* Actionable Sub-Cards: Video Sync & Coding Assessment */}
                     <div className="space-y-2 pt-1">
-                      {/* Video Sync Row */}
-                      {req.scheduledDate && req.scheduledTime ? (
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/25">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-8 h-8 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center shrink-0">
-                              <Video className="w-4 h-4" />
-                            </div>
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-xs font-bold text-white">
-                                  {req.scheduledDate} at {req.scheduledTime}
-                                </span>
-                                <span className="text-[11px] text-white/60">
-                                  ({req.duration || 30}m &bull; {req.timezone || 'IST'})
-                                </span>
-                                {(() => {
-                                  const cd = getMeetingCountdown(req.scheduledDate, req.scheduledTime);
-                                  if (!cd) return null;
-                                  return (
-                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                      cd.status === 'live'
-                                        ? 'bg-emerald-500/25 text-emerald-300 animate-pulse'
-                                        : 'bg-amber-400/20 text-amber-300'
-                                    }`}>
-                                      {cd.text}
-                                    </span>
-                                  );
-                                })()}
-                              </div>
-                              <p className="text-[11px] text-white/50">Scheduled Video Call</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            {req.meetingLink && (
-                              <a
-                                href={req.meetingLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-300 hover:to-orange-300 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-sm transition-all"
-                              >
-                                <Video className="w-3.5 h-3.5" /> Join Room
-                                <ExternalLink className="w-3 h-3" />
-                              </a>
-                            )}
-                            <button
-                              onClick={() => openInteractionModal(req)}
-                              className="px-2.5 py-1.5 rounded-xl text-white/60 hover:text-white font-medium text-xs transition-all cursor-pointer"
-                            >
-                              Reschedule
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-between gap-3 p-2.5 px-3.5 rounded-2xl bg-white/[0.02] border border-white/10 hover:border-amber-400/30 transition-all">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-7 h-7 rounded-lg bg-amber-400/10 text-amber-400 flex items-center justify-center shrink-0">
-                              <Video className="w-3.5 h-3.5" />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-xs font-semibold text-white/90 truncate">Video Sync</p>
-                              <p className="text-[11px] text-white/50 truncate">Optional: Meet with {req.name} to discuss before deciding</p>
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => openInteractionModal(req)}
-                            className="px-3 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-amber-300 border border-amber-400/30 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
-                          >
-                            <Calendar className="w-3.5 h-3.5" />
-                            <span>Schedule Sync</span>
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Technical Coding Assessment Row */}
-                      {(() => {
-                        const myId = currentUser?._id || currentUser?.id;
-                        const isAssigned = Boolean(req.testDetails?.isAssigned);
-                        
-                        let isEvaluator = false;
-                        let isCandidate = false;
-
-                        if (isAssigned) {
-                          if (req.testDetails?.assignedBy) {
-                            isEvaluator = String(req.testDetails.assignedBy) === String(myId);
-                            isCandidate = !isEvaluator;
-                          } else if (req.testDetails?.candidate) {
-                            isCandidate = String(req.testDetails.candidate) === String(myId);
-                            isEvaluator = !isCandidate;
-                          } else {
-                            isEvaluator = req.requestType === 'team_join_request';
-                            isCandidate = !isEvaluator;
-                          }
-                        } else {
-                          // Before assignment:
-                          // In incoming tab (recipient is current user):
-                          // - team_join_request: Recipient is team lead -> Evaluator / Assigner (sees "Assign Test")
-                          // - team_invite & peer: Recipient is the Candidate / Assignee (sees "Awaiting Assignment")
-                          isEvaluator = req.requestType === 'team_join_request';
-                          isCandidate = !isEvaluator;
-                        }
-
-                        if (isEvaluator) {
-                          return req.testDetails?.isAssigned ? (
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl bg-orange-500/10 border border-orange-500/25">
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="w-8 h-8 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center shrink-0">
-                                  <Terminal className="w-4 h-4" />
-                                </div>
-                                <div className="min-w-0 space-y-0.5">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-xs font-bold text-white truncate">{req.testDetails.title}</span>
-                                    <span className="px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300 border border-orange-500/30 text-[10px] uppercase font-bold">
-                                      {req.testDetails.language}
-                                    </span>
-                                    <span className="text-[11px] text-white/50">{req.testDetails.timeLimitMinutes}m limit</span>
-                                    {req.testDetails.violationsCount > 0 && (
-                                      <span className="text-red-400 font-bold text-[11px]">
-                                        &bull; {req.testDetails.violationsCount} violations
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    {req.testDetails.status === 'completed' && (
-                                      <span className="text-emerald-400 text-[11px] font-bold flex items-center gap-1">
-                                        <CheckCircle2 className="w-3 h-3" /> Submitted & Ready for Review
-                                      </span>
-                                    )}
-                                    {req.testDetails.status === 'terminated_violations' && (
-                                      <span className="text-red-400 text-[11px] font-bold flex items-center gap-1">
-                                        <ShieldAlert className="w-3 h-3" /> Terminated (Violations Policy)
-                                      </span>
-                                    )}
-                                    {req.testDetails.status === 'in_progress' && (
-                                      <span className="text-amber-400 text-[11px] font-bold flex items-center gap-1">
-                                        <Loader2 className="w-3 h-3 animate-spin" /> In Progress by Candidate
-                                      </span>
-                                    )}
-                                    {req.testDetails.status === 'pending' && (
-                                      <span className="text-white/50 text-[11px]">Pending Candidate Start</span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-2 shrink-0">
-                                {(req.testDetails.status === 'completed' || req.testDetails.status === 'terminated_violations') && (
-                                  <button
-                                    onClick={() => openReviewModal(req)}
-                                    className="px-3 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
-                                  >
-                                    <FileCode className="w-3.5 h-3.5" /> Review Code
-                                  </button>
-                                )}
-                                <button
-                                  onClick={() => openAssignTestModal(req)}
-                                  className="px-2.5 py-1.5 rounded-xl text-white/60 hover:text-white font-medium text-xs transition-all cursor-pointer"
-                                >
-                                  Edit Test
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex items-center justify-between gap-3 p-2.5 px-3.5 rounded-2xl bg-white/[0.02] border border-white/10 hover:border-orange-500/30 transition-all">
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="w-7 h-7 rounded-lg bg-orange-500/10 text-orange-400 flex items-center justify-center shrink-0">
-                                  <Code className="w-3.5 h-3.5" />
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="text-xs font-semibold text-white/90 truncate">Coding Assessment</p>
-                                  <p className="text-[11px] text-white/50 truncate">Optional: Screen {req.name} in a fullscreen VS Code environment</p>
-                                </div>
-                              </div>
-                              <button
-                                onClick={() => openAssignTestModal(req)}
-                                className="px-3 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-orange-400 border border-orange-500/30 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
-                              >
-                                <Code className="w-3.5 h-3.5" />
-                                <span>Assign Test</span>
-                              </button>
-                            </div>
-                          );
-                        }
-
-                        if (isCandidate) {
-                          return req.testDetails?.isAssigned ? (
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl bg-orange-500/10 border border-orange-500/30 shadow-md">
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="w-8 h-8 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center shrink-0">
-                                  <Terminal className="w-4 h-4" />
-                                </div>
-                                <div className="min-w-0 space-y-0.5">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-xs font-bold text-white truncate">{req.testDetails.title}</span>
-                                    <span className="px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300 border border-orange-500/30 text-[10px] uppercase font-bold">
-                                      {req.testDetails.language}
-                                    </span>
-                                    <span className="text-[11px] text-white/50">{req.testDetails.timeLimitMinutes} mins</span>
-                                  </div>
-                                  <p className="text-[11px] text-white/60">Assigned by {req.name || 'Peer Evaluator'} &bull; Proctored VS Code</p>
-                                </div>
-                              </div>
-
-                              <div className="shrink-0">
-                                {req.testDetails.status === 'pending' || req.testDetails.status === 'in_progress' ? (
-                                  <button
-                                    onClick={() => window.open(`/test/${req.id}`, '_blank')}
-                                    className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
-                                  >
-                                    <Maximize2 className="w-3.5 h-3.5" />
-                                    <span>{req.testDetails.status === 'in_progress' ? 'Resume Test' : 'Launch Test'}</span>
-                                  </button>
-                                ) : req.testDetails.status === 'completed' ? (
-                                  <span className="px-2.5 py-1 rounded-xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-xs font-bold flex items-center gap-1">
-                                    <CheckCircle2 className="w-3 h-3" /> Submitted
-                                  </span>
-                                ) : (
-                                  <span className="px-2.5 py-1 rounded-xl bg-red-500/20 border border-red-500/40 text-red-300 text-xs font-bold flex items-center gap-1">
-                                    <ShieldAlert className="w-3 h-3" /> Terminated (Violations)
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex items-center justify-between gap-3 p-2.5 px-3.5 rounded-2xl bg-white/[0.02] border border-white/10">
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="w-7 h-7 rounded-lg bg-white/[0.05] text-white/50 flex items-center justify-center shrink-0">
-                                  <Code className="w-3.5 h-3.5 text-white/60" />
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="text-xs font-semibold text-white/80 truncate">Coding Assessment</p>
-                                  <p className="text-[11px] text-white/50 truncate">Optional assessment not assigned yet by {req.name || 'evaluator'}. The "Launch Test" button will appear here once assigned.</p>
-                                </div>
-                              </div>
-                              <span className="px-2.5 py-1 rounded-xl bg-white/[0.04] border border-white/10 text-white/50 text-[11px] font-semibold shrink-0">
-                                Awaiting Assignment
-                              </span>
-                            </div>
-                          );
-                        }
-
-                        return null;
-                      })()}
+                      <VideoSyncRow req={req} onOpenInteraction={openInteractionModal} />
+                      <AssessmentRow
+                        req={req}
+                        currentUserId={currentUser?._id || currentUser?.id}
+                        tab="incoming"
+                        onOpenAssign={openAssignTestModal}
+                        onOpenReview={openReviewModal}
+                      />
                     </div>
 
                     {/* Footer Actions */}
@@ -1116,249 +1061,14 @@ console.log(solution());
 
                     {/* Actionable Sub-Cards: Video Sync & Coding Assessment */}
                     <div className="space-y-2 pt-1">
-                      {/* Video Sync Row */}
-                      {req.scheduledDate && req.scheduledTime ? (
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/25">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-8 h-8 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center shrink-0">
-                              <Video className="w-4 h-4" />
-                            </div>
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-xs font-bold text-white">
-                                  {req.scheduledDate} at {req.scheduledTime}
-                                </span>
-                                <span className="text-[11px] text-white/60">
-                                  ({req.duration || 30}m &bull; {req.timezone || 'IST'})
-                                </span>
-                                {(() => {
-                                  const cd = getMeetingCountdown(req.scheduledDate, req.scheduledTime);
-                                  if (!cd) return null;
-                                  return (
-                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                      cd.status === 'live'
-                                        ? 'bg-emerald-500/25 text-emerald-300 animate-pulse'
-                                        : 'bg-amber-400/20 text-amber-300'
-                                    }`}>
-                                      {cd.text}
-                                    </span>
-                                  );
-                                })()}
-                              </div>
-                              <p className="text-[11px] text-white/50">Scheduled Video Call</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            {req.meetingLink && (
-                              <a
-                                href={req.meetingLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-300 hover:to-orange-300 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-sm transition-all"
-                              >
-                                <Video className="w-3.5 h-3.5" /> Join Room
-                                <ExternalLink className="w-3 h-3" />
-                              </a>
-                            )}
-                            <button
-                              onClick={() => openInteractionModal(req)}
-                              className="px-2.5 py-1.5 rounded-xl text-white/60 hover:text-white font-medium text-xs transition-all cursor-pointer"
-                            >
-                              Settings
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-between gap-3 p-2.5 px-3.5 rounded-2xl bg-white/[0.02] border border-white/10 hover:border-amber-400/30 transition-all">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-7 h-7 rounded-lg bg-amber-400/10 text-amber-400 flex items-center justify-center shrink-0">
-                              <Video className="w-3.5 h-3.5" />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-xs font-semibold text-white/90 truncate">Video Sync</p>
-                              <p className="text-[11px] text-white/50 truncate">Optional: Coordinate a sync date & video room with {req.name}</p>
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => openInteractionModal(req)}
-                            className="px-3 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-amber-300 border border-amber-400/30 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
-                          >
-                            <Calendar className="w-3.5 h-3.5" />
-                            <span>Schedule Sync</span>
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Technical Coding Assessment Row */}
-                      {(() => {
-                        const myId = currentUser?._id || currentUser?.id;
-                        const isAssigned = Boolean(req.testDetails?.isAssigned);
-
-                        let isEvaluator = false;
-                        let isCandidate = false;
-
-                        if (isAssigned) {
-                          if (req.testDetails?.assignedBy) {
-                            isEvaluator = String(req.testDetails.assignedBy) === String(myId);
-                            isCandidate = !isEvaluator;
-                          } else if (req.testDetails?.candidate) {
-                            isCandidate = String(req.testDetails.candidate) === String(myId);
-                            isEvaluator = !isCandidate;
-                          } else {
-                            isEvaluator = req.requestType === 'team_invite';
-                            isCandidate = !isEvaluator;
-                          }
-                        } else {
-                          // Before assignment:
-                          // In sent tab (sender is current user):
-                          // - team_invite: Sender is team lead inviting someone -> Evaluator (sees "Assign Test")
-                          // - team_join_request: Sender is applicant wanting to join -> Candidate (sees "Awaiting Assignment")
-                          // - peer: Sender can screen recipient -> Evaluator (sees "Assign Test")
-                          isEvaluator = req.requestType !== 'team_join_request';
-                          isCandidate = !isEvaluator;
-                        }
-
-                        if (isEvaluator) {
-                          return req.testDetails?.isAssigned ? (
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl bg-orange-500/10 border border-orange-500/25">
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="w-8 h-8 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center shrink-0">
-                                  <Terminal className="w-4 h-4" />
-                                </div>
-                                <div className="min-w-0 space-y-0.5">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-xs font-bold text-white truncate">{req.testDetails.title}</span>
-                                    <span className="px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300 border border-orange-500/30 text-[10px] uppercase font-bold">
-                                      {req.testDetails.language}
-                                    </span>
-                                    <span className="text-[11px] text-white/50">{req.testDetails.timeLimitMinutes}m limit</span>
-                                    {req.testDetails.violationsCount > 0 && (
-                                      <span className="text-red-400 font-bold text-[11px]">
-                                        &bull; {req.testDetails.violationsCount} violations
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    {req.testDetails.status === 'completed' && (
-                                      <span className="text-emerald-400 text-[11px] font-bold flex items-center gap-1">
-                                        <CheckCircle2 className="w-3 h-3" /> Submitted & Ready for Review
-                                      </span>
-                                    )}
-                                    {req.testDetails.status === 'terminated_violations' && (
-                                      <span className="text-red-400 text-[11px] font-bold flex items-center gap-1">
-                                        <ShieldAlert className="w-3 h-3" /> Terminated (Violations Policy)
-                                      </span>
-                                    )}
-                                    {req.testDetails.status === 'in_progress' && (
-                                      <span className="text-amber-400 text-[11px] font-bold flex items-center gap-1">
-                                        <Loader2 className="w-3 h-3 animate-spin" /> In Progress by Candidate
-                                      </span>
-                                    )}
-                                    {req.testDetails.status === 'pending' && (
-                                      <span className="text-white/50 text-[11px]">Pending Candidate Start</span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-2 shrink-0">
-                                {(req.testDetails.status === 'completed' || req.testDetails.status === 'terminated_violations') && (
-                                  <button
-                                    onClick={() => openReviewModal(req)}
-                                    className="px-3 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
-                                  >
-                                    <FileCode className="w-3.5 h-3.5" /> Review Code
-                                  </button>
-                                )}
-                                <button
-                                  onClick={() => openAssignTestModal(req)}
-                                  className="px-2.5 py-1.5 rounded-xl text-white/60 hover:text-white font-medium text-xs transition-all cursor-pointer"
-                                >
-                                  Edit Test
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex items-center justify-between gap-3 p-2.5 px-3.5 rounded-2xl bg-white/[0.02] border border-white/10 hover:border-orange-500/30 transition-all">
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="w-7 h-7 rounded-lg bg-orange-500/10 text-orange-400 flex items-center justify-center shrink-0">
-                                  <Code className="w-3.5 h-3.5" />
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="text-xs font-semibold text-white/90 truncate">Coding Assessment</p>
-                                  <p className="text-[11px] text-white/50 truncate">Optional: Screen {req.name} in a fullscreen VS Code environment</p>
-                                </div>
-                              </div>
-                              <button
-                                onClick={() => openAssignTestModal(req)}
-                                className="px-3 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-orange-400 border border-orange-500/30 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
-                              >
-                                <Code className="w-3.5 h-3.5" />
-                                <span>Assign Test</span>
-                              </button>
-                            </div>
-                          );
-                        }
-
-                        if (isCandidate) {
-                          return req.testDetails?.isAssigned ? (
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl bg-orange-500/10 border border-orange-500/30 shadow-md">
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="w-8 h-8 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center shrink-0">
-                                  <Terminal className="w-4 h-4" />
-                                </div>
-                                <div className="min-w-0 space-y-0.5">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-xs font-bold text-white truncate">{req.testDetails.title}</span>
-                                    <span className="px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300 border border-orange-500/30 text-[10px] uppercase font-bold">
-                                      {req.testDetails.language}
-                                    </span>
-                                    <span className="text-[11px] text-white/50">{req.testDetails.timeLimitMinutes} mins</span>
-                                  </div>
-                                  <p className="text-[11px] text-white/60">Assigned by {req.name || 'Peer Evaluator'} &bull; Proctored VS Code</p>
-                                </div>
-                              </div>
-
-                              <div className="shrink-0">
-                                {req.testDetails.status === 'pending' || req.testDetails.status === 'in_progress' ? (
-                                  <button
-                                    onClick={() => window.open(`/test/${req.id}`, '_blank')}
-                                    className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
-                                  >
-                                    <Maximize2 className="w-3.5 h-3.5" />
-                                    <span>{req.testDetails.status === 'in_progress' ? 'Resume Test' : 'Launch Test'}</span>
-                                  </button>
-                                ) : req.testDetails.status === 'completed' ? (
-                                  <span className="px-2.5 py-1 rounded-xl bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-xs font-bold flex items-center gap-1">
-                                    <CheckCircle2 className="w-3 h-3" /> Submitted
-                                  </span>
-                                ) : (
-                                  <span className="px-2.5 py-1 rounded-xl bg-red-500/20 border border-red-500/40 text-red-300 text-xs font-bold flex items-center gap-1">
-                                    <ShieldAlert className="w-3 h-3" /> Terminated (Violations)
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex items-center justify-between gap-3 p-2.5 px-3.5 rounded-2xl bg-white/[0.02] border border-white/10">
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="w-7 h-7 rounded-lg bg-white/[0.05] text-white/50 flex items-center justify-center shrink-0">
-                                  <Code className="w-3.5 h-3.5 text-white/60" />
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="text-xs font-semibold text-white/80 truncate">Coding Assessment</p>
-                                  <p className="text-[11px] text-white/50 truncate">Waiting for team lead {req.name || ''} to review or assign technical test. The "Launch Test" button will appear here once assigned.</p>
-                                </div>
-                              </div>
-                              <span className="px-2.5 py-1 rounded-xl bg-white/[0.04] border border-white/10 text-white/50 text-[11px] font-semibold shrink-0">
-                                Awaiting Assignment
-                              </span>
-                            </div>
-                          );
-                        }
-
-                        return null;
-                      })()}
+                      <VideoSyncRow req={req} onOpenInteraction={openInteractionModal} />
+                      <AssessmentRow
+                        req={req}
+                        currentUserId={currentUser?._id || currentUser?.id}
+                        tab="sent"
+                        onOpenAssign={openAssignTestModal}
+                        onOpenReview={openReviewModal}
+                      />
                     </div>
 
                     {/* Footer Actions */}

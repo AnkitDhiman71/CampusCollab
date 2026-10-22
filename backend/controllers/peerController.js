@@ -292,7 +292,11 @@ const getMyRequests = async (req, res) => {
 const updateRequestStatus = async (req, res) => {
   try {
     const { status } = req.body;
-    const request = await Request.findOne({ _id: req.params.id, recipient: req.user._id });
+    // Allow either the recipient or the sender (evaluator reviewing test) to update request
+    const request = await Request.findOne({
+      _id: req.params.id,
+      $or: [{ recipient: req.user._id }, { sender: req.user._id }],
+    });
 
     if (!request) {
       return res.status(404).json({ success: false, message: 'Request not found.' });
@@ -302,39 +306,80 @@ const updateRequestStatus = async (req, res) => {
     await request.save();
 
     if (status === 'accepted') {
-      // 1. If this was an explicit team invite or team join request, add the new member to that team
+      // Determine candidate to be added to the team
+      const candidateId = request.testDetails?.candidate || 
+        (request.requestType === 'team_join_request' ? request.sender : request.recipient);
+
+      let targetTeam = null;
+
+      // 1. If request is linked to a team, use that team
       if (request.team) {
-        const targetTeam = await Team.findById(request.team).populate('lead', 'name email');
-        if (targetTeam) {
-          const newMemberId = request.requestType === 'team_join_request' ? request.sender : req.user._id;
+        targetTeam = await Team.findById(request.team).populate('lead', 'name email');
+      }
 
-          if (!targetTeam.members.some((m) => m.toString() === newMemberId.toString())) {
-            targetTeam.members.push(newMemberId);
-            await targetTeam.save();
-          }
+      // 2. If no team attached yet, find the team where the evaluator/team lead is lead
+      if (!targetTeam) {
+        const evaluatorId = request.testDetails?.assignedBy || 
+          (request.requestType === 'team_join_request' ? request.recipient : request.sender);
 
-          // Send confirmation email via Nodemailer
-          const memberUser = await User.findById(newMemberId);
-          if (memberUser && memberUser.email) {
-            sendTeamJoinedConfirmationEmail({
-              toEmail: memberUser.email,
-              memberName: memberUser.name || 'Student Member',
-              teamTitle: targetTeam.title,
-              teamLeadName: targetTeam.lead?.name || 'Team Lead',
-              teamLeadEmail: targetTeam.lead?.email || '',
-            }).catch((err) => console.error('Failed to send team joined email:', err));
-          }
+        targetTeam = await Team.findOne({ lead: evaluatorId }).sort({ createdAt: -1 }).populate('lead', 'name email');
+        if (!targetTeam) {
+          targetTeam = await Team.findOne({ members: evaluatorId }).sort({ createdAt: -1 }).populate('lead', 'name email');
         }
       }
-      // Note: Generic peer requests do NOT auto-create dummy teams or mutate openToWork!
-      // Peer connection is now cleanly established without side effects.
+
+      // 3. If still no team, auto-create a project team for collaboration so member is guaranteed to be added
+      if (!targetTeam && candidateId) {
+        const evaluatorId = request.testDetails?.assignedBy || 
+          (request.requestType === 'team_join_request' ? request.recipient : request.sender);
+        const leadUser = await User.findById(evaluatorId);
+        const candidateUser = await User.findById(candidateId);
+
+        targetTeam = await Team.create({
+          title: `${leadUser?.name || 'Collaboration'}'s Project Team`,
+          description: `Project collaboration team between ${leadUser?.name || 'Lead'} and ${candidateUser?.name || 'Member'}.`,
+          lead: evaluatorId,
+          members: [candidateId],
+          tech: ['Full Stack', 'Collaboration'],
+        });
+        request.team = targetTeam._id;
+        await request.save();
+      }
+
+      // 4. Ensure candidate is added to targetTeam members
+      if (targetTeam && candidateId) {
+        const candidateStr = candidateId.toString();
+        if (!targetTeam.members.some((m) => m.toString() === candidateStr)) {
+          targetTeam.members.push(candidateId);
+          await targetTeam.save();
+        }
+
+        // Link request to the team if not already
+        if (!request.team) {
+          request.team = targetTeam._id;
+          await request.save();
+        }
+
+        // Send confirmation email via Nodemailer
+        const memberUser = await User.findById(candidateId);
+        if (memberUser && memberUser.email) {
+          sendTeamJoinedConfirmationEmail({
+            toEmail: memberUser.email,
+            memberName: memberUser.name || 'Student Member',
+            teamTitle: targetTeam.title,
+            teamLeadName: targetTeam.lead?.name || 'Team Lead',
+            teamLeadEmail: targetTeam.lead?.email || '',
+          }).catch((err) => console.error('Failed to send team joined email:', err));
+        }
+      }
     }
 
     return res.json({ 
       success: true, 
       message: status === 'accepted' 
-        ? (request.team ? 'Team request accepted! Member added to project team.' : 'Connection accepted! You can now collaborate and schedule project syncs.') 
-        : `Request ${status} successfully.` 
+        ? 'Accepted successfully! Candidate has been added to the project team.' 
+        : `Request ${status} successfully.`,
+      request,
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
