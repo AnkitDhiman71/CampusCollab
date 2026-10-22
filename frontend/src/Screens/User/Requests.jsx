@@ -385,6 +385,7 @@ export function Requests() {
   const [testLanguage, setTestLanguage] = useState('javascript');
   const [testDuration, setTestDuration] = useState(30);
   const [testStarter, setTestStarter] = useState('');
+  const [testCases, setTestCases] = useState([{ input: '', expectedOutput: '', explanation: '' }]);
   const [assigningTest, setAssigningTest] = useState(false);
   const [assignError, setAssignError] = useState('');
 
@@ -397,6 +398,20 @@ export function Requests() {
   const openAssignTestModal = (req) => {
     setTestTarget(req);
     setAssignError('');
+    if (req.testDetails?.isAssigned) {
+      setTestTitle(req.testDetails.title || '');
+      setTestDesc(req.testDetails.description || '');
+      setTestLanguage(req.testDetails.language || 'c');
+      setTestDuration(req.testDetails.timeLimitMinutes || 20);
+      setTestStarter(req.testDetails.starterCode || '');
+      if (req.testDetails.testCases && req.testDetails.testCases.length > 0) {
+        setTestCases(req.testDetails.testCases);
+      } else {
+        setTestCases([{ input: '', expectedOutput: '', explanation: '' }]);
+      }
+      return;
+    }
+
     // Default to the first DB question if available
     const preset = questionsBank && questionsBank.length > 0 ? questionsBank[0] : null;
     if (preset) {
@@ -405,10 +420,18 @@ export function Requests() {
       setTestLanguage(preset.language || 'c');
       setTestDuration(preset.duration || 20);
       setTestStarter(preset.starterCode || '');
+      if (preset.testCases && preset.testCases.length > 0) {
+        setTestCases(preset.testCases);
+      } else {
+        setTestCases([{ input: '"CampusCollab"', expectedOutput: '"balloCsupmaC"', explanation: 'Reverse string in-place' }]);
+      }
     } else {
       setTestLanguage('c');
       setTestTitle('C (GCC): In-Place String Reversal with Pointers');
       setTestDuration(20);
+      setTestCases([
+        { input: '"CampusCollab"', expectedOutput: '"balloCsupmaC"', explanation: 'Reverse string in-place' },
+      ]);
       setTestDesc(
 `Problem Statement:
 Write a C function void reverseString(char* s) that reverses a null-terminated string in-place using two pointers.
@@ -454,6 +477,11 @@ int main() {
     setTestLanguage(preset.language || 'c');
     setTestDuration(preset.duration || 20);
     setTestStarter(preset.starterCode || '');
+    if (preset.testCases && preset.testCases.length > 0) {
+      setTestCases(preset.testCases);
+    } else {
+      setTestCases([{ input: '', expectedOutput: '', explanation: '' }]);
+    }
   };
 
   const handleLanguageChange = (newLang) => {
@@ -494,6 +522,7 @@ int main() {
         language: testLanguage,
         timeLimitMinutes: Number(testDuration) || 30,
         starterCode: testStarter,
+        testCases: testCases.filter((tc) => (tc.input && tc.input.trim()) || (tc.expectedOutput && tc.expectedOutput.trim())),
       });
 
       if (res?.success) {
@@ -1444,6 +1473,78 @@ int main() {
                   className="w-full rounded-2xl glass-input-field p-3 font-mono text-xs text-amber-300 placeholder-white/40 focus:outline-none"
                   placeholder="// Function signature and boilerplate..."
                 />
+              </div>
+
+              {/* Test Cases & Assertions */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-white/90 flex items-center gap-1.5">
+                    <Terminal className="w-3.5 h-3.5 text-amber-300" />
+                    <span>Sample Test Cases & Assertions ({testCases.length})</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setTestCases([...testCases, { input: '', expectedOutput: '', explanation: '' }])}
+                    className="px-2.5 py-1 rounded-xl glass-btn-ghost text-amber-300 hover:text-white text-[11px] font-bold flex items-center gap-1 transition-all border border-amber-400/30 cursor-pointer"
+                  >
+                    <Plus className="w-3 h-3" /> Add Test Case
+                  </button>
+                </div>
+
+                <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                  {testCases.map((tc, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3 rounded-2xl glass-tile border border-white/10 space-y-2 relative group hover:border-amber-400/40 transition-all"
+                    >
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="font-bold text-amber-300">Test Case #{idx + 1}</span>
+                        {testCases.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => setTestCases(testCases.filter((_, i) => i !== idx))}
+                            className="text-white/40 hover:text-red-400 font-bold transition-colors cursor-pointer"
+                            title="Remove test case"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[10px] text-white/70 font-semibold block mb-0.5">Input / Arguments</label>
+                          <input
+                            type="text"
+                            value={tc.input}
+                            onChange={(e) => {
+                              const updated = [...testCases];
+                              updated[idx].input = e.target.value;
+                              setTestCases(updated);
+                            }}
+                            placeholder='e.g. "CampusCollab" or [2, 7, 11, 15]'
+                            className="w-full px-2.5 py-1.5 rounded-xl glass-input-field text-xs text-white placeholder-white/30 font-mono focus:outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[10px] text-white/70 font-semibold block mb-0.5">Expected Output</label>
+                          <input
+                            type="text"
+                            value={tc.expectedOutput}
+                            onChange={(e) => {
+                              const updated = [...testCases];
+                              updated[idx].expectedOutput = e.target.value;
+                              setTestCases(updated);
+                            }}
+                            placeholder='e.g. "balloCsupmaC" or [0, 1]'
+                            className="w-full px-2.5 py-1.5 rounded-xl glass-input-field text-xs text-emerald-300 placeholder-white/30 font-mono focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* Security info notice */}

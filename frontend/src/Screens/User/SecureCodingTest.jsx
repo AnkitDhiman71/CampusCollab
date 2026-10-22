@@ -308,6 +308,45 @@ export function SecureCodingTest() {
     }
   };
 
+  const handleRunCodeWithInput = async (customStdin, expectedOut) => {
+    setIsRunning(true);
+    const lang = test?.language || 'javascript';
+    setOutput(`[Compiler] Running code against Test Case (Input: "${customStdin || 'None'}")...\n`);
+
+    try {
+      const res = await executeCodeApi({
+        code: codeRef.current || code,
+        language: lang,
+        stdin: customStdin || '',
+      });
+
+      if (res?.success) {
+        const actualOut = (res.output || '').trim();
+        const expected = (expectedOut || '').trim();
+        let matchBanner = '';
+        if (expected) {
+          const isMatch = actualOut === expected || actualOut.includes(expected);
+          matchBanner = isMatch
+            ? `\n\n🎉 [TEST CASE PASSED]\nExpected Output: "${expected}"\nYour Output:     "${actualOut}"`
+            : `\n\n❌ [TEST CASE FAILED - OUTPUT MISMATCH]\nExpected Output: "${expected}"\nYour Output:     "${actualOut}"`;
+        }
+
+        let finalOutput = res.output || '✓ Code executed with no standard output.';
+        finalOutput += matchBanner;
+        finalOutput += `\n\n[Execution time: ${res.executionTimeMs || 0} ms • Environment: ${res.language || lang}]`;
+        setOutput(finalOutput);
+      } else if (res?.isCompileError) {
+        setOutput(`⚠️ Compilation / Syntax Error:\n${res.output || 'Could not compile source code.'}`);
+      } else {
+        setOutput(res?.output || res?.message || 'Execution failed.');
+      }
+    } catch (err) {
+      setOutput(`Execution Error: ${err.message || 'Could not connect to compiler.'}`);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
   // Submit test
   const handleSubmitTest = async (isTimeout = false) => {
     if (isSubmittingRef.current) return;
@@ -683,6 +722,63 @@ export function SecureCodingTest() {
             <div className="prose prose-invert prose-xs text-xs text-slate-300 leading-relaxed whitespace-pre-wrap font-sans">
               {test.description}
             </div>
+
+            {/* Sample Test Cases Panel */}
+            {test.testCases && test.testCases.length > 0 && (
+              <div className="pt-3 border-t border-slate-800/80 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Sample Test Cases ({test.testCases.length})</span>
+                  </span>
+                  <span className="text-[10px] text-slate-400">Click to run against code</span>
+                </div>
+
+                <div className="space-y-2">
+                  {test.testCases.map((tc, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/90 space-y-2 text-xs"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-amber-300 text-[11px]">Case #{idx + 1}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setStdin(tc.input || '');
+                            setShowStdin(true);
+                            handleRunCodeWithInput(tc.input || '', tc.expectedOutput || '');
+                          }}
+                          className="px-2.5 py-1 rounded-lg bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 text-[11px] font-bold border border-orange-500/40 transition-colors cursor-pointer flex items-center gap-1"
+                        >
+                          <Play className="w-3 h-3" /> Run This Case
+                        </button>
+                      </div>
+
+                      <div className="space-y-1.5 font-mono text-[11px]">
+                        {tc.input && (
+                          <div className="bg-slate-900/90 p-2 rounded-lg border border-slate-800">
+                            <span className="text-slate-400 text-[10px] block font-sans font-semibold">Input / Arguments:</span>
+                            <span className="text-white whitespace-pre-wrap">{tc.input}</span>
+                          </div>
+                        )}
+                        {tc.expectedOutput && (
+                          <div className="bg-slate-900/90 p-2 rounded-lg border border-slate-800">
+                            <span className="text-slate-400 text-[10px] block font-sans font-semibold">Expected Output:</span>
+                            <span className="text-emerald-300 whitespace-pre-wrap">{tc.expectedOutput}</span>
+                          </div>
+                        )}
+                        {tc.explanation && (
+                          <div className="text-[10px] text-slate-400 font-sans italic">
+                            Explanation: {tc.explanation}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Anti-cheat live log for transparency */}
             <div className="pt-4 border-t border-slate-800/80 space-y-2">

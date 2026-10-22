@@ -109,6 +109,13 @@ const requestSchema = new mongoose.Schema(
         type: String,
         default: '',
       },
+      testCases: [
+        {
+          input: { type: String, default: '' },
+          expectedOutput: { type: String, default: '' },
+          explanation: { type: String, default: '' },
+        },
+      ],
       assignedAt: {
         type: Date,
       },

@@ -588,6 +588,7 @@ const assignTechnicalTest = async (req, res) => {
       language = 'javascript',
       timeLimitMinutes = 30,
       starterCode = '',
+      testCases = [],
     } = req.body;
 
     if (!title || !title.trim()) {
@@ -596,6 +597,16 @@ const assignTechnicalTest = async (req, res) => {
     if (!description || !description.trim()) {
       return res.status(400).json({ success: false, message: 'Assessment problem description is required.' });
     }
+
+    const formattedTestCases = Array.isArray(testCases)
+      ? testCases
+          .filter((tc) => tc && (tc.input !== undefined || tc.expectedOutput !== undefined))
+          .map((tc) => ({
+            input: String(tc.input || '').trim(),
+            expectedOutput: String(tc.expectedOutput || '').trim(),
+            explanation: String(tc.explanation || '').trim(),
+          }))
+      : [];
 
     const request = await Request.findById(id)
       .populate('sender', 'name email')
@@ -647,6 +658,7 @@ const assignTechnicalTest = async (req, res) => {
       language: language.toLowerCase().trim() || 'javascript',
       timeLimitMinutes: Number(timeLimitMinutes) || 30,
       starterCode: starterCode || '',
+      testCases: formattedTestCases,
       assignedAt: new Date(),
       status: 'pending',
       submittedCode: '',

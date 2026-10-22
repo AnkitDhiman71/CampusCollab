@@ -42,6 +42,13 @@ const questionSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    testCases: [
+      {
+        input: { type: String, default: '' },
+        expectedOutput: { type: String, default: '' },
+        explanation: { type: String, default: '' },
+      },
+    ],
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
