@@ -123,6 +123,21 @@ export function Home() {
     loadHomeData();
   }, []);
 
+  const filteredPeers = allPeers.filter((peer) => {
+    const matchesDept =
+      selectedDept === 'All' ||
+      (peer.department && peer.department.toLowerCase() === selectedDept.toLowerCase());
+
+    const matchesSkill =
+      selectedSkill === 'All' ||
+      (Array.isArray(peer.skills)
+        ? peer.skills.some((s) => s.toLowerCase() === selectedSkill.toLowerCase())
+        : typeof peer.skills === 'string' &&
+          peer.skills.toLowerCase().includes(selectedSkill.toLowerCase()));
+
+    return matchesDept && matchesSkill;
+  });
+
   const stats = [
     {
       id: 'pending',
@@ -141,7 +156,7 @@ export function Home() {
     {
       id: 'peers',
       label: 'Open-to-Work Peers',
-      value: peers.length,
+      value: allPeers.length,
       icon: Trophy,
       color: 'text-orange-400 bg-orange-500/10 border border-orange-500/20',
     },
