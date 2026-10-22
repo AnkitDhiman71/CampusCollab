@@ -328,22 +328,17 @@ const updateRequestStatus = async (req, res) => {
         }
       }
 
-      // 3. If still no team, auto-create a project team for collaboration so member is guaranteed to be added
-      if (!targetTeam && candidateId) {
-        const evaluatorId = request.testDetails?.assignedBy || 
-          (request.requestType === 'team_join_request' ? request.recipient : request.sender);
-        const leadUser = await User.findById(evaluatorId);
-        const candidateUser = await User.findById(candidateId);
-
-        targetTeam = await Team.create({
-          title: `${leadUser?.name || 'Collaboration'}'s Project Team`,
-          description: `Project collaboration team between ${leadUser?.name || 'Lead'} and ${candidateUser?.name || 'Member'}.`,
-          lead: evaluatorId,
-          members: [candidateId],
-          tech: ['Full Stack', 'Collaboration'],
+      // 3. If no team exists, return noTeam flag so user can be redirected to Create Team page
+      if (!targetTeam) {
+        const candidateUser = candidateId ? await User.findById(candidateId).select('name email') : null;
+        return res.json({
+          success: true,
+          noTeam: true,
+          candidateId,
+          candidateName: candidateUser?.name || 'Candidate',
+          message: 'Candidate approved! No team exists yet. Redirecting to Create Team page to add them...',
+          request,
         });
-        request.team = targetTeam._id;
-        await request.save();
       }
 
       // 4. Ensure candidate is added to targetTeam members

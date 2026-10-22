@@ -60,8 +60,9 @@ const createTeamSchema = yup.object({
   title: yup.string().trim().required('Team title is required.'),
   tech: yup.mixed(),
   openRoles: yup.mixed(),
-  description: yup.string().default(''),
-  githubUrl: yup.string().trim().default(''),
+  description: yup.string().nullable().default(''),
+  githubUrl: yup.string().trim().nullable().default(''),
+  candidateId: yup.string().nullable().default(''),
 });
 
 const contactSchema = yup.object({

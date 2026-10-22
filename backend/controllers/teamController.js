@@ -6,7 +6,7 @@ const { sendTeamInviteEmail, sendTeamJoinRequestEmail } = require('../config/nod
 
 const createTeam = async (req, res) => {
   try {
-    const { title, tech, description, githubUrl, openRoles } = req.body;
+    const { title, tech, description, githubUrl, openRoles, candidateId } = req.body;
     const techArray = Array.isArray(tech)
       ? tech
       : (tech ? tech.split(',').map((t) => t.trim()).filter(Boolean) : []);
@@ -14,15 +14,32 @@ const createTeam = async (req, res) => {
       ? openRoles
       : (openRoles ? openRoles.split(',').map((r) => r.trim()).filter(Boolean) : []);
 
+    const initialMembers = [req.user._id];
+    if (candidateId && candidateId.toString() !== req.user._id.toString()) {
+      initialMembers.push(candidateId);
+    }
+
     const team = await Team.create({
       title: title.trim(),
       lead: req.user._id,
-      members: [req.user._id],
+      members: initialMembers,
       tech: techArray,
       openRoles: rolesArray,
       description: description ? description.trim() : '',
       githubUrl: githubUrl ? githubUrl.trim() : '',
     });
+
+    if (candidateId && candidateId.toString() !== req.user._id.toString()) {
+      await Request.updateMany(
+        {
+          $or: [
+            { sender: req.user._id, recipient: candidateId },
+            { sender: candidateId, recipient: req.user._id },
+          ],
+        },
+        { $set: { team: team._id, status: 'accepted' } }
+      );
+    }
 
     const populatedTeam = await Team.findById(team._id).populate('lead members', 'name email department skills ranking rankingPoints');
     return res.status(201).json({ success: true, message: 'Team created successfully!', team: populatedTeam });

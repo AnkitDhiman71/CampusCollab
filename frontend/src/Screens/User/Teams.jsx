@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import Layout from '../../Components/Layout';
 import {
   Users,
@@ -51,6 +51,11 @@ const getTeamMemberCount = (team) => {
 };
 
 export function Teams() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const createParam = searchParams.get('create');
+  const candidateIdParam = searchParams.get('candidateId');
+  const candidateNameParam = searchParams.get('candidateName');
+
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
@@ -105,24 +110,42 @@ export function Teams() {
 
   useEffect(() => {
     fetchTeamsData();
-  }, []);
+    if (createParam === 'true') {
+      setShowCreateModal(true);
+      if (candidateNameParam) {
+        setActionMsg(`Create your team to add ${candidateNameParam} as a member.`);
+      }
+    }
+  }, [createParam, candidateNameParam]);
 
   const handleCreateTeam = async (e) => {
     e.preventDefault();
     if (!newTeam.title) return;
     try {
-      const data = await createNewTeam(newTeam);
+      const payload = {
+        ...newTeam,
+        candidateId: candidateIdParam || undefined,
+      };
+      const data = await createNewTeam(payload);
       if (data?.success) {
         setShowCreateModal(false);
         setNewTeam({ title: '', tech: '', description: '', githubUrl: '', openRoles: '' });
-        setActionMsg(`Team "${data.team?.title || newTeam.title}" created successfully! You can now invite members with specific roles.`);
+        setActionMsg(
+          candidateNameParam
+            ? `Team "${data.team?.title || newTeam.title}" created successfully and ${candidateNameParam} has been added!`
+            : `Team "${data.team?.title || newTeam.title}" created successfully! You can now invite members with specific roles.`
+        );
         setTimeout(() => setActionMsg(''), 6000);
+        if (createParam) {
+          setSearchParams({});
+        }
         fetchTeamsData();
       } else {
         alert(data?.message || 'Failed to create team.');
       }
-    } catch {
-      alert('Failed to create team. Please try again.');
+    } catch (err) {
+      console.error('Failed to create team:', err);
+      alert(err?.message || 'Failed to create team. Please try again.');
     }
   };
 
@@ -682,6 +705,12 @@ export function Teams() {
               </div>
 
               <form onSubmit={handleCreateTeam} className="space-y-4">
+                {candidateNameParam && (
+                  <div className="p-3 rounded-2xl bg-emerald-500/15 border border-emerald-400/30 text-emerald-200 text-xs font-semibold flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span><strong>{candidateNameParam}</strong> will automatically be added as a team member upon creation.</span>
+                  </div>
+                )}
                 <div>
                   <label className="block text-xs font-bold text-white/90 mb-1.5">Project Name / Title *</label>
                   <input

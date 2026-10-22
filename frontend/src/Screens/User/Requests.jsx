@@ -619,9 +619,16 @@ int main() {
     try {
       const res = await updateRequestStatus(id, status);
       if (res?.success) {
-        setActionMsg(res.message || `Request ${status} successfully!`);
-        setTimeout(() => setActionMsg(''), 4000);
-        loadRequests();
+        if (res.noTeam) {
+          setActionMsg(res.message || 'Candidate approved! Redirecting to create your team...');
+          setTimeout(() => {
+            navigate(`/teams?create=true&candidateId=${res.candidateId || ''}&candidateName=${encodeURIComponent(res.candidateName || '')}`);
+          }, 1000);
+        } else {
+          setActionMsg(res.message || `Request ${status} successfully!`);
+          setTimeout(() => setActionMsg(''), 4000);
+          loadRequests();
+        }
       } else {
         alert(res?.message || 'Failed to update request.');
       }

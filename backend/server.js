@@ -21,6 +21,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/peers', peerRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/teams', teamRoutes);
 // Serve static frontend files in production if frontend/dist exists
 const fs = require('fs');
 const os = require('os');
