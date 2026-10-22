@@ -42,6 +42,24 @@ if (fs.existsSync(frontendDist)) {
     timestamp: new Date().toISOString()
   }));
 }
+
+// 404 handler for unmatched API routes
+app.all('/api/*', (req, res) => {
+  res.status(404).json({
+    success: false,
+    message: `API endpoint ${req.method} ${req.originalUrl} not found`,
+  });
+});
+
+// Global error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || 'Internal Server Error',
+  });
+});
+
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/campusCollab';
 const { seedDefaultQuestionsIfNeeded } = require('./controllers/questionController');
