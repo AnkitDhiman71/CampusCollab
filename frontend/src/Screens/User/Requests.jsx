@@ -820,10 +820,9 @@ console.log(solution());
                         } else {
                           // Before assignment:
                           // In incoming tab (recipient is current user):
-                          // - team_join_request: Recipient is team lead -> Evaluator (sees "Assign Test")
-                          // - team_invite: Recipient is candidate being invited -> Candidate (sees "Awaiting Assignment")
-                          // - peer: Recipient is evaluator of incoming request -> Evaluator (sees "Assign Test")
-                          isEvaluator = req.requestType !== 'team_invite';
+                          // - team_join_request: Recipient is team lead -> Evaluator / Assigner (sees "Assign Test")
+                          // - team_invite & peer: Recipient is the Candidate / Assignee (sees "Awaiting Assignment")
+                          isEvaluator = req.requestType === 'team_join_request';
                           isCandidate = !isEvaluator;
                         }
 

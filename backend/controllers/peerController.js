@@ -581,14 +581,12 @@ const assignTechnicalTest = async (req, res) => {
       evaluatorUser = request.sender;
       candidateUser = request.recipient;
     } else {
-      // Direct peer collaboration request: either party can assign a screening test
-      if (isRecipient) {
-        evaluatorUser = request.recipient;
-        candidateUser = request.sender;
-      } else {
-        evaluatorUser = request.sender;
-        candidateUser = request.recipient;
+      // Direct peer collaboration request: the initiator/sender is the assigner
+      if (!isSender) {
+        return res.status(403).json({ success: false, message: 'Only the peer who initiated the collaboration request can assign technical assessments.' });
       }
+      evaluatorUser = request.sender;
+      candidateUser = request.recipient;
     }
 
     request.testDetails = {
