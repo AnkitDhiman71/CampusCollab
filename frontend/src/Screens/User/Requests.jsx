@@ -1154,8 +1154,8 @@ int main() {
 
         {/* Video Call Interaction Modal */}
         {interactionTarget && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-fade-in">
-            <div className="w-full max-w-lg rounded-[32px] glass-panel p-6 sm:p-7 shadow-2xl border border-white/30 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-3 sm:p-4 animate-fade-in">
+            <div className="w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-2xl sm:rounded-[32px] glass-panel p-4 sm:p-7 shadow-2xl border border-white/30 space-y-4 animate-in fade-in zoom-in-95 duration-200">
               <div className="flex justify-between items-center pb-3 border-b border-white/15">
                 <div className="flex items-center gap-3">
                   <div className="p-2.5 rounded-2xl glass-tile text-amber-400 border border-amber-400/30">
@@ -1341,8 +1341,8 @@ int main() {
         {/* ASSIGN TECHNICAL TEST MODAL                             */}
         {/* ======================================================== */}
         {testTarget && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in font-sans">
-            <div className="w-full max-w-2xl max-h-[92vh] glass-panel p-6 sm:p-7 rounded-[32px] border border-orange-500/40 shadow-2xl flex flex-col space-y-4 overflow-y-auto">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in font-sans">
+            <div className="w-full max-w-2xl max-h-[92vh] glass-panel p-4 sm:p-7 rounded-2xl sm:rounded-[32px] border border-orange-500/40 shadow-2xl flex flex-col space-y-4 overflow-y-auto">
               
               <div className="flex items-center justify-between pb-3 border-b border-white/10 shrink-0">
                 <div className="flex items-center gap-3">
@@ -1592,8 +1592,8 @@ int main() {
         {/* REVIEW TECHNICAL ASSESSMENT MODAL                        */}
         {/* ======================================================== */}
         {reviewTarget && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in font-sans">
-            <div className="w-full max-w-3xl max-h-[92vh] glass-panel p-6 sm:p-7 rounded-[32px] border border-orange-500/40 shadow-2xl flex flex-col space-y-4 overflow-hidden text-slate-100">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in font-sans">
+            <div className="w-full max-w-3xl max-h-[92vh] glass-panel p-4 sm:p-7 rounded-2xl sm:rounded-[32px] border border-orange-500/40 shadow-2xl flex flex-col space-y-4 overflow-hidden text-slate-100">
               
               {/* Header */}
               <div className="flex items-center justify-between pb-3 border-b border-white/10 shrink-0">
@@ -1631,7 +1631,7 @@ int main() {
               <div className="overflow-y-auto space-y-4 pr-1 flex-1 text-xs">
                 
                 {/* Metrics Summary Strip */}
-                <div className="grid grid-cols-3 gap-3 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 text-xs">
                   <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-0.5">
                     <span className="text-[10px] text-slate-400 uppercase font-bold block">Time Taken</span>
                     <p className="font-extrabold text-white text-sm">

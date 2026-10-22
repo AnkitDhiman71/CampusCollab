@@ -692,8 +692,8 @@ export function Teams() {
 
         {/* MODAL 1: Create New Team */}
         {showCreateModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-2xl p-4 animate-fade-in">
-            <div className="w-full max-w-md rounded-[32px] glass-panel p-6 sm:p-7 shadow-2xl space-y-4 relative animate-in fade-in zoom-in-95 duration-200">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-2xl p-3 sm:p-4 animate-fade-in">
+            <div className="w-full max-w-md max-h-[92vh] overflow-y-auto rounded-2xl sm:rounded-[32px] glass-panel p-4 sm:p-7 shadow-2xl space-y-4 relative animate-in fade-in zoom-in-95 duration-200">
               <div className="flex justify-between items-center pb-2 border-b border-white/10">
                 <h3 className="text-base font-bold text-white tracking-tight">Create New Collaboration Team</h3>
                 <button
@@ -792,8 +792,8 @@ export function Teams() {
 
         {/* MODAL 2: Add Member to Specific Team (Team Lead inviting peer) */}
         {inviteModalTeam && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-2xl p-4 animate-fade-in">
-            <div className="w-full max-w-lg rounded-[32px] glass-panel p-6 sm:p-7 shadow-2xl space-y-4 relative border border-white/30 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-2xl p-3 sm:p-4 animate-fade-in">
+            <div className="w-full max-w-lg rounded-2xl sm:rounded-[32px] glass-panel p-4 sm:p-7 shadow-2xl space-y-4 relative border border-white/30 animate-in fade-in zoom-in-95 duration-200 max-h-[92vh] flex flex-col">
               <div className="flex justify-between items-start pb-3 border-b border-white/10 shrink-0">
                 <div className="flex items-center gap-3">
                   <div className="p-2.5 rounded-2xl glass-tile text-amber-300 border border-amber-300/30">
@@ -990,8 +990,8 @@ export function Teams() {
 
         {/* MODAL 3: Request to Join Team Modal (Peer applying to join existing team) */}
         {joinModalTeam && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-2xl p-4 animate-fade-in">
-            <div className="w-full max-w-md rounded-[32px] glass-panel p-6 sm:p-7 shadow-2xl space-y-4 relative border border-white/30 animate-in fade-in zoom-in-95 duration-200">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-2xl p-3 sm:p-4 animate-fade-in">
+            <div className="w-full max-w-md max-h-[92vh] overflow-y-auto rounded-2xl sm:rounded-[32px] glass-panel p-4 sm:p-7 shadow-2xl space-y-4 relative border border-white/30 animate-in fade-in zoom-in-95 duration-200">
               <div className="flex justify-between items-start pb-3 border-b border-white/10">
                 <div className="flex items-center gap-3">
                   <div className="p-2.5 rounded-2xl glass-tile text-amber-300 border border-amber-300/30">
