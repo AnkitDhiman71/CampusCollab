@@ -46,12 +46,21 @@ const getAllPeers = async (req, res) => {
       });
     }
 
+    const { department, skill } = req.query;
+
     // Fetch all student peers (exclude self if logged in as student; if admin, show all students)
     const query = { 
       role: { $ne: 'admin' },
     };
     if (currentUserId && req.user.role !== 'admin') {
       query._id = { $ne: req.user._id };
+    }
+    if (department && department !== 'All') {
+      query.department = department;
+    }
+    if (skill && skill !== 'All') {
+      const sanitizedSkill = skill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      query.skills = { $regex: new RegExp(sanitizedSkill, 'i') };
     }
 
     const peers = await User.find(query).sort({ createdAt: -1 });

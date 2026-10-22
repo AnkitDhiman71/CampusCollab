@@ -16,9 +16,11 @@ import {
   Paperclip,
   FileText,
   Mail,
+  RotateCcw,
 } from 'lucide-react';
 import { getPeers, sendCollaborationRequest } from '../../API/peers';
 import PeerProfileModal from '../../Components/PeerProfileModal';
+import { CURATED_SKILLS, DEPARTMENTS } from '../../data/skills';
 
 const SKILL_TAGS = ['All', 'React', 'Node.js', 'Python', 'MERN', 'C++', 'Java', 'UI/UX'];
 
@@ -27,6 +29,8 @@ export function Search() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTag, setSelectedTag] = useState('All');
+  const [selectedDept, setSelectedDept] = useState('All');
+  const [selectedSkill, setSelectedSkill] = useState('All');
   const [requestTarget, setRequestTarget] = useState(null);
   const [requestRole, setRequestRole] = useState('');
   const [requestNote, setRequestNote] = useState('');
@@ -61,21 +65,30 @@ export function Search() {
   }, []);
 
   const filteredCandidates = candidates.filter((c) => {
-    const term = (searchTerm || '').toLowerCase();
+    const term = (searchTerm || '').trim().toLowerCase();
     const cName = (c.name || '').toLowerCase();
     const cDept = (c.department || '').toLowerCase();
     const cSkills = Array.isArray(c.skills) ? c.skills : [];
 
     const matchesSearch =
+      !term ||
       cName.includes(term) ||
       cDept.includes(term) ||
       cSkills.some((s) => (s || '').toLowerCase().includes(term));
+
+    const matchesDept =
+      selectedDept === 'All' ||
+      cDept === selectedDept.toLowerCase();
+
+    const matchesSkill =
+      selectedSkill === 'All' ||
+      cSkills.some((s) => (s || '').toLowerCase() === selectedSkill.toLowerCase());
 
     const matchesTag =
       selectedTag === 'All' ||
       cSkills.some((s) => (s || '').toLowerCase() === selectedTag.toLowerCase());
 
-    return matchesSearch && matchesTag;
+    return matchesSearch && matchesDept && matchesSkill && matchesTag;
   });
 
   const handleSendRequest = async () => {
@@ -130,34 +143,91 @@ export function Search() {
         </div>
 
         <div className="p-5 sm:p-6 rounded-[28px] glass-panel-sub shadow-xl space-y-4">
-          <div className="relative">
-            <SearchIcon className="absolute left-4 top-3.5 w-5 h-5 text-white/50" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by student name, department (BCA, BBA, MCA), or skill (React, Node.js)..."
-              className="w-full pl-12 pr-4 py-3 glass-input-field rounded-2xl text-sm font-medium text-white placeholder-white/40"
-            />
+          <div className="flex flex-col md:flex-row gap-3">
+            <div className="relative flex-1">
+              <SearchIcon className="absolute left-4 top-3.5 w-5 h-5 text-white/50" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by student name, department (BCA, BBA, MCA), or skill (React, Node.js)..."
+                className="w-full pl-12 pr-4 py-3 glass-input-field rounded-2xl text-sm font-medium text-white placeholder-white/40"
+              />
+            </div>
+
+            {/* Department Dropdown Filter */}
+            <div className="relative min-w-[170px]">
+              <select
+                value={selectedDept}
+                onChange={(e) => setSelectedDept(e.target.value)}
+                className="w-full px-3.5 py-3 glass-input-field rounded-2xl text-xs font-bold text-white cursor-pointer appearance-none pr-8"
+              >
+                <option value="All" className="bg-slate-900 text-white">All Departments</option>
+                {DEPARTMENTS.map((dept) => (
+                  <option key={dept} value={dept} className="bg-slate-900 text-white">
+                    {dept} Department
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Skills Dropdown Filter */}
+            <div className="relative min-w-[170px]">
+              <select
+                value={selectedSkill}
+                onChange={(e) => setSelectedSkill(e.target.value)}
+                className="w-full px-3.5 py-3 glass-input-field rounded-2xl text-xs font-bold text-white cursor-pointer appearance-none pr-8"
+              >
+                <option value="All" className="bg-slate-900 text-white">All Skills</option>
+                {CURATED_SKILLS.map((sk) => (
+                  <option key={sk} value={sk} className="bg-slate-900 text-white">
+                    {sk}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 pt-1">
-            <span className="text-xs font-bold text-white/70 flex items-center gap-1 mr-2">
-              <Filter className="w-3.5 h-3.5 text-amber-300" /> Skills Filter:
-            </span>
-            {SKILL_TAGS.map((tag) => (
-              <button
-                key={tag}
-                onClick={() => setSelectedTag(tag)}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
-                  selectedTag === tag
-                    ? 'glass-btn-cta text-slate-950 shadow-md scale-105'
-                    : 'glass-pill text-white/80 hover:text-white'
-                }`}
-              >
-                {tag}
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-white/10">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-bold text-white/70 flex items-center gap-1 mr-1">
+                <Filter className="w-3.5 h-3.5 text-amber-300" /> Quick Tags:
+              </span>
+              {SKILL_TAGS.map((tag) => (
+                <button
+                  key={tag}
+                  onClick={() => setSelectedTag(tag)}
+                  className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                    selectedTag === tag
+                      ? 'glass-btn-cta text-slate-950 shadow-md scale-105'
+                      : 'glass-pill text-white/80 hover:text-white'
+                  }`}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2 ml-auto">
+              {(selectedDept !== 'All' || selectedSkill !== 'All' || selectedTag !== 'All' || searchTerm.trim()) && (
+                <button
+                  onClick={() => {
+                    setSelectedDept('All');
+                    setSelectedSkill('All');
+                    setSelectedTag('All');
+                    setSearchTerm('');
+                  }}
+                  className="px-3 py-1.5 rounded-xl glass-btn-ghost text-amber-300 hover:text-white text-xs font-bold flex items-center gap-1 cursor-pointer transition-all border border-amber-400/30"
+                  title="Reset all filters"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Reset Filters</span>
+                </button>
+              )}
+              <span className="text-white/60 text-xs font-medium px-2 py-1 rounded-lg bg-white/5 border border-white/10">
+                {filteredCandidates.length} peer{filteredCandidates.length === 1 ? '' : 's'} found
+              </span>
+            </div>
           </div>
         </div>
 

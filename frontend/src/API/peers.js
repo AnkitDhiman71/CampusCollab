@@ -1,7 +1,11 @@
 const BASE_URL = '/api/peers';
 
-export const getPeers = async () => {
-  const res = await fetch(BASE_URL, {
+export const getPeers = async (filters = {}) => {
+  const params = new URLSearchParams();
+  if (filters.department && filters.department !== 'All') params.append('department', filters.department);
+  if (filters.skill && filters.skill !== 'All') params.append('skill', filters.skill);
+  const queryStr = params.toString() ? `?${params.toString()}` : '';
+  const res = await fetch(`${BASE_URL}${queryStr}`, {
     method: 'GET',
     credentials: 'include',
   });

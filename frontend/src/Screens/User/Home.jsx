@@ -16,10 +16,14 @@ import {
   CalendarDays,
   Clock,
   ExternalLink,
+  Filter,
+  RotateCcw,
+  Code,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getMe } from '../../API/auth';
 import { getPeers, getMyRequests } from '../../API/peers';
+import { CURATED_SKILLS, DEPARTMENTS } from '../../data/skills';
 
 // Helper: Calculate live countdown for scheduled meetings
 const getMeetingCountdown = (dateStr, timeStr) => {
@@ -71,7 +75,9 @@ const getCalendarUrl = (req) => {
 
 export function Home() {
   const [currentUser, setCurrentUser] = useState(null);
-  const [peers, setPeers] = useState([]);
+  const [allPeers, setAllPeers] = useState([]);
+  const [selectedDept, setSelectedDept] = useState('All');
+  const [selectedSkill, setSelectedSkill] = useState('All');
   const [pendingCount, setPendingCount] = useState(0);
   const [acceptedCount, setAcceptedCount] = useState(0);
   const [upcomingMeetings, setUpcomingMeetings] = useState([]);
@@ -91,7 +97,7 @@ export function Home() {
           setCurrentUser(meRes.user);
         }
         if (peersRes?.success) {
-          setPeers(peersRes.peers.slice(0, 3));
+          setAllPeers(peersRes.peers || []);
         }
         if (reqRes?.success) {
           const pending = (reqRes.incoming || []).filter((r) => r.status === 'pending').length;
@@ -397,7 +403,7 @@ export function Home() {
           </div>
         ) : (
           <div className="p-6 sm:p-8 rounded-[32px] glass-panel shadow-2xl space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <h2 className="text-xl font-bold text-white tracking-tight">
                   Featured Peer Candidates
@@ -408,26 +414,115 @@ export function Home() {
                 </p>
               </div>
 
-              <Link
-                to="/search"
-                className="text-xs font-bold text-amber-300 hover:text-amber-200 flex items-center gap-1 transition-colors"
-              >
-                View All
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
+              <div className="flex flex-wrap items-center gap-2.5">
+                {/* Department Filter Dropdown */}
+                <div className="relative">
+                  <select
+                    value={selectedDept}
+                    onChange={(e) => setSelectedDept(e.target.value)}
+                    className="px-3 py-2 glass-input-field rounded-xl text-xs font-bold text-white cursor-pointer appearance-none pr-7"
+                  >
+                    <option value="All" className="bg-slate-900 text-white">All Departments</option>
+                    {DEPARTMENTS.map((dept) => (
+                      <option key={dept} value={dept} className="bg-slate-900 text-white">
+                        {dept} Department
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Skills Filter Dropdown */}
+                <div className="relative">
+                  <select
+                    value={selectedSkill}
+                    onChange={(e) => setSelectedSkill(e.target.value)}
+                    className="px-3 py-2 glass-input-field rounded-xl text-xs font-bold text-white cursor-pointer appearance-none pr-7 max-w-[170px]"
+                  >
+                    <option value="All" className="bg-slate-900 text-white">All Skills</option>
+                    {CURATED_SKILLS.map((sk) => (
+                      <option key={sk} value={sk} className="bg-slate-900 text-white">
+                        {sk}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Reset Filters button if any active */}
+                {(selectedDept !== 'All' || selectedSkill !== 'All') && (
+                  <button
+                    onClick={() => {
+                      setSelectedDept('All');
+                      setSelectedSkill('All');
+                    }}
+                    className="px-2.5 py-2 rounded-xl glass-btn-ghost text-amber-300 hover:text-white text-xs font-bold flex items-center gap-1 cursor-pointer transition-all border border-amber-400/30"
+                    title="Reset all filters"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Reset</span>
+                  </button>
+                )}
+
+                <Link
+                  to="/search"
+                  className="text-xs font-bold text-amber-300 hover:text-amber-200 flex items-center gap-1 transition-colors ml-auto sm:ml-0"
+                >
+                  View All ({allPeers.length})
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
             </div>
+
+            {/* Active Filter Indicators */}
+            {(selectedDept !== 'All' || selectedSkill !== 'All') && (
+              <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-white/10 text-xs">
+                <span className="text-white/60 font-semibold flex items-center gap-1">
+                  <Filter className="w-3.5 h-3.5 text-amber-400" /> Active filters:
+                </span>
+                {selectedDept !== 'All' && (
+                  <span className="px-2.5 py-0.5 rounded-lg bg-amber-400/20 text-amber-200 border border-amber-400/30 font-bold text-xs flex items-center gap-1">
+                    Dept: {selectedDept}
+                    <button onClick={() => setSelectedDept('All')} className="text-white/60 hover:text-white font-black cursor-pointer">×</button>
+                  </span>
+                )}
+                {selectedSkill !== 'All' && (
+                  <span className="px-2.5 py-0.5 rounded-lg bg-amber-400/20 text-amber-200 border border-amber-400/30 font-bold text-xs flex items-center gap-1">
+                    Skill: {selectedSkill}
+                    <button onClick={() => setSelectedSkill('All')} className="text-white/60 hover:text-white font-black cursor-pointer">×</button>
+                  </span>
+                )}
+                <span className="text-white/50 text-[11px] ml-auto">
+                  Showing {filteredPeers.length} matching candidate{filteredPeers.length === 1 ? '' : 's'}
+                </span>
+              </div>
+            )}
 
             {loading ? (
               <div className="py-12 flex justify-center items-center">
                 <Loader2 className="w-6 h-6 text-amber-400 animate-spin" />
               </div>
-            ) : peers.length === 0 ? (
-              <div className="text-center py-8 text-white/60 text-sm font-medium">
-                No peer candidates available at the moment. As other students sign up, they will appear here!
+            ) : filteredPeers.length === 0 ? (
+              <div className="p-8 rounded-2xl glass-tile text-center space-y-2 border border-white/10">
+                <p className="text-white/80 text-sm font-semibold">
+                  No peer candidates found matching {selectedSkill !== 'All' ? `skill "${selectedSkill}"` : ''} {selectedDept !== 'All' ? `in ${selectedDept} department` : ''}.
+                </p>
+                <p className="text-xs text-white/50">
+                  Try adjusting your filter options or reset filters to see all available students.
+                </p>
+                {(selectedDept !== 'All' || selectedSkill !== 'All') && (
+                  <button
+                    onClick={() => {
+                      setSelectedDept('All');
+                      setSelectedSkill('All');
+                    }}
+                    className="mt-2 px-4 py-2 rounded-xl glass-btn-cta text-slate-950 font-bold text-xs cursor-pointer inline-flex items-center gap-1.5"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" /> Reset Filters
+                  </button>
+                )}
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                {peers.map((peer) => (
+                {filteredPeers.slice(0, 6).map((peer) => (
                   <div
                     key={peer.id}
                     className="p-5 rounded-2xl glass-tile flex flex-col justify-between space-y-4 hover:border-white/30 transition-all"
@@ -438,19 +533,25 @@ export function Home() {
                           {peer.name}
                         </h3>
 
-                        <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-400/15 text-amber-200 border border-amber-300/30">
+                        <button
+                          onClick={() => setSelectedDept(peer.department)}
+                          className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-400/15 text-amber-200 border border-amber-300/30 hover:bg-amber-400/30 transition-colors cursor-pointer"
+                          title={`Filter by ${peer.department}`}
+                        >
                           {peer.department}
-                        </span>
+                        </button>
                       </div>
 
                       <div className="flex flex-wrap gap-1.5 mt-3">
                         {peer.skills.map((skill) => (
-                          <span
+                          <button
                             key={skill}
-                            className="px-2.5 py-0.5 text-xs bg-white/10 border border-white/20 rounded-lg font-medium text-white/90"
+                            onClick={() => setSelectedSkill(skill)}
+                            className="px-2.5 py-0.5 text-xs bg-white/10 hover:bg-amber-400/20 border border-white/20 hover:border-amber-400/40 rounded-lg font-medium text-white/90 hover:text-amber-200 transition-all cursor-pointer"
+                            title={`Filter peers with skill: ${skill}`}
                           >
                             {skill}
-                          </span>
+                          </button>
                         ))}
                       </div>
                     </div>

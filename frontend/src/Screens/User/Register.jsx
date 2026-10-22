@@ -6,6 +6,7 @@ import {
   Users, CheckCircle2, KeyRound, Loader2, ShieldCheck 
 } from 'lucide-react';
 import { signupUser, sendOtp, verifyOtp } from '../../API/auth';
+import { CURATED_SKILLS } from '../../data/skills';
 
 export function Register() {
   const navigate = useNavigate();
@@ -324,17 +325,42 @@ export function Register() {
 
             <div>
               <label className="block text-xs font-bold text-white/90 mb-1.5">Skills *</label>
-              <div className="relative">
-                <Sparkles className="absolute left-3.5 top-3.5 w-4 h-4 text-white/50" />
-                <input
-                  type="text"
-                  name="skills"
-                  placeholder="e.g. React, Node.js, Python, MongoDB"
-                  value={formik.values.skills}
-                  onChange={formik.handleChange}
-                  onBlur={formik.handleBlur}
-                  className="w-full pl-10 pr-3 py-3 glass-input-field rounded-2xl text-sm font-medium text-white placeholder-white/40"
-                />
+              <div className="space-y-2">
+                <div className="relative">
+                  <select
+                    defaultValue=""
+                    onChange={(e) => {
+                      if (!e.target.value) return;
+                      const selected = e.target.value;
+                      const existing = formik.values.skills ? formik.values.skills.split(',').map((s) => s.trim()).filter(Boolean) : [];
+                      if (!existing.includes(selected)) {
+                        existing.push(selected);
+                        formik.setFieldValue('skills', existing.join(', '));
+                      }
+                      e.target.value = '';
+                    }}
+                    className="w-full px-4 py-2.5 glass-input-field rounded-2xl text-xs font-medium text-white appearance-none cursor-pointer"
+                  >
+                    <option value="" className="bg-slate-900 text-white">Select from standard skills to add...</option>
+                    {CURATED_SKILLS.map((skill) => (
+                      <option key={skill} value={skill} className="bg-slate-900 text-white">
+                        + {skill}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="relative">
+                  <Sparkles className="absolute left-3.5 top-3.5 w-4 h-4 text-white/50" />
+                  <input
+                    type="text"
+                    name="skills"
+                    placeholder="Selected skills or comma-separated list (e.g. React, Node.js)"
+                    value={formik.values.skills}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    className="w-full pl-10 pr-3 py-3 glass-input-field rounded-2xl text-sm font-medium text-white placeholder-white/40"
+                  />
+                </div>
               </div>
               {(formik.touched.skills || formik.submitCount > 0) && formik.errors.skills && (
                 <p className="text-amber-300 text-xs mt-1 font-semibold">⚠️ {formik.errors.skills}</p>

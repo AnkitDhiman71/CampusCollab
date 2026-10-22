@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { getMe, updateUserProfile } from '../../API/auth';
 import { getLiveGitHubData } from '../../API/peers';
+import { CURATED_SKILLS } from '../../data/skills';
 
 const GithubIcon = ({ className = 'w-5 h-5' }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 24 24">
@@ -56,6 +57,7 @@ export function Profile() {
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
   const [newSkill, setNewSkill] = useState('');
+  const [skillSelect, setSkillSelect] = useState('');
 
   // Live GitHub Sync state
   const [syncingGithub, setSyncingGithub] = useState(false);
@@ -152,12 +154,14 @@ export function Profile() {
   };
 
   const handleAddSkill = (e) => {
-    e.preventDefault();
-    if (!newSkill.trim()) return;
-    if (!profile.skills.includes(newSkill.trim())) {
-      setProfile({ ...profile, skills: [...profile.skills, newSkill.trim()] });
+    if (e) e.preventDefault();
+    const skillToAdd = (skillSelect === 'custom' ? newSkill : (skillSelect || newSkill)).trim();
+    if (!skillToAdd) return;
+    if (!profile.skills.includes(skillToAdd)) {
+      setProfile({ ...profile, skills: [...profile.skills, skillToAdd] });
     }
     setNewSkill('');
+    setSkillSelect('');
   };
 
   const handleRemoveSkill = (skillToRemove) => {
@@ -520,20 +524,46 @@ export function Profile() {
             )}
 
             {isEditing && (
-              <form onSubmit={handleAddSkill} className="flex gap-2 pt-2 max-w-sm">
-                <input
-                  type="text"
-                  value={newSkill}
-                  onChange={(e) => setNewSkill(e.target.value)}
-                  placeholder="Add a new skill (e.g. Next.js, Docker)"
-                  className="flex-1 p-2.5 glass-input-field rounded-xl text-xs text-white placeholder-white/40 font-medium"
-                />
-                <button
-                  type="submit"
-                  className="glass-btn-cta px-4 py-2 text-slate-950 rounded-xl text-xs font-bold cursor-pointer"
-                >
-                  Add
-                </button>
+              <form onSubmit={handleAddSkill} className="space-y-2 pt-2 max-w-md">
+                <div className="flex gap-2">
+                  <select
+                    value={skillSelect}
+                    onChange={(e) => {
+                      setSkillSelect(e.target.value);
+                      if (e.target.value && e.target.value !== 'custom') {
+                        setNewSkill(e.target.value);
+                      } else if (e.target.value === 'custom') {
+                        setNewSkill('');
+                      }
+                    }}
+                    className="flex-1 p-2.5 glass-input-field rounded-xl text-xs text-white appearance-none cursor-pointer"
+                  >
+                    <option value="" className="bg-slate-900 text-white">Select from standard skills...</option>
+                    {CURATED_SKILLS.filter((s) => !profile.skills.includes(s)).map((skill) => (
+                      <option key={skill} value={skill} className="bg-slate-900 text-white">
+                        {skill}
+                      </option>
+                    ))}
+                    <option value="custom" className="bg-slate-900 text-amber-300">+ Other (Type custom skill)</option>
+                  </select>
+                  <button
+                    type="submit"
+                    disabled={!skillSelect && !newSkill.trim()}
+                    className="glass-btn-cta px-4 py-2 text-slate-950 rounded-xl text-xs font-bold cursor-pointer disabled:opacity-50"
+                  >
+                    Add
+                  </button>
+                </div>
+                {skillSelect === 'custom' && (
+                  <input
+                    type="text"
+                    value={newSkill}
+                    onChange={(e) => setNewSkill(e.target.value)}
+                    placeholder="Type custom skill (e.g. Kotlin, Rust, Go)..."
+                    className="w-full p-2.5 glass-input-field rounded-xl text-xs text-white placeholder-white/40 font-medium"
+                    autoFocus
+                  />
+                )}
               </form>
             )}
           </div>
