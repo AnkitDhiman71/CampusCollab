@@ -20,6 +20,7 @@ import {
   Zap,
   RefreshCw,
   GitFork,
+  QrCode,
 } from 'lucide-react';
 import { getMe, updateUserProfile } from '../../API/auth';
 import { getLiveGitHubData } from '../../API/peers';
@@ -42,6 +43,7 @@ const INITIAL_PROFILE = {
   bio: '',
   skills: [],
   githubUrl: '',
+  upiId: '',
   ranking: '🌱 Rising Contributor',
   rankingPoints: 500,
   openToWork: true,
@@ -82,6 +84,7 @@ export function Profile() {
             bio: u.bio || '',
             skills: u.skills ? u.skills.split(',').map((s) => s.trim()).filter(Boolean) : [],
             githubUrl: u.githubUrl || '',
+            upiId: u.upiId || '',
             ranking: u.ranking || '🌱 Rising Contributor',
             rankingPoints: u.rankingPoints || 500,
             openToWork: u.openToWork !== false,
@@ -469,6 +472,48 @@ export function Profile() {
                 </div>
               ) : (
                 <p className="text-xs text-white/50 italic">No GitHub account linked yet.</p>
+              )}
+            </div>
+
+            {/* Milestone Payout UPI ID */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-bold text-white/60 uppercase tracking-wider flex items-center gap-1.5">
+                  <QrCode className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Milestone Payout UPI ID</span>
+                </label>
+                <span className="text-[10px] text-emerald-400 font-bold">For Team Rewards</span>
+              </div>
+              {isEditing ? (
+                <div>
+                  <input
+                    type="text"
+                    name="upiId"
+                    placeholder="e.g. rahul@okhdfcbank or 9876543210@paytm"
+                    value={profile.upiId || ''}
+                    onChange={handleChange}
+                    className="w-full p-3 glass-input-field rounded-2xl text-sm font-semibold text-white placeholder-white/40"
+                  />
+                  <p className="text-[11px] text-white/50 mt-1 font-medium">
+                    Your team lead can send project milestone rewards directly to this UPI ID via Google Pay / PhonePe / Paytm.
+                  </p>
+                </div>
+              ) : profile.upiId ? (
+                <div className="flex items-center justify-between p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
+                  <div className="flex items-center gap-2">
+                    <QrCode className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span className="text-xs sm:text-sm font-mono font-bold text-emerald-300">
+                      {profile.upiId}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400 px-2 py-0.5 rounded-lg bg-emerald-500/20">
+                    ✓ Ready for Rewards
+                  </span>
+                </div>
+              ) : (
+                <p className="text-xs text-white/50 italic">
+                  No UPI ID added yet. Click 'Edit Profile' to add your UPI ID for team milestone rewards.
+                </p>
               )}
             </div>
           </div>

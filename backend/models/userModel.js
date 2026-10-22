@@ -12,6 +12,7 @@ const userSchema = new mongoose.Schema(
     openToWork: { type: Boolean, default: true },
     bio: { type: String, default: '' },
     githubUrl: { type: String, default: '' },
+    upiId: { type: String, default: '', trim: true },
     ranking: { type: String, default: 'Top 10% Contributor' },
     rankingPoints: { type: Number, default: 850 },
     projects: [

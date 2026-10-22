@@ -1,4 +1,10 @@
 require('dotenv').config();
+const dns = require('dns');
+try {
+  dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
+} catch (e) {
+  // fallback to system resolver
+}
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
@@ -9,6 +15,7 @@ const peerRoutes = require('./routes/peerRoutes');
 const contactRoutes = require('./routes/contactRoutes');
 const teamRoutes = require('./routes/teamRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const rewardRoutes = require('./routes/rewardRoutes');
 const { securityLogger } = require('./middlewares/securityLoggerMiddleware')
 const app = express();
 app.use(cors({ origin: true, credentials: true }));
@@ -24,6 +31,7 @@ app.use('/api/peers', peerRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/teams', teamRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/rewards', rewardRoutes);
 // Serve static frontend files in production if frontend/dist exists
 const fs = require('fs');
 const os = require('os');

@@ -643,6 +643,56 @@ const sendTechnicalTestAssignedEmail = async ({
   });
 };
 
+const sendRewardDispatchedEmail = async ({
+  toEmail,
+  recipientName,
+  senderName,
+  teamTitle,
+  amount,
+  reason,
+  utrNumber,
+}) => {
+  const subject = `🎉 You received a ₹${amount} Milestone Reward from ${senderName}!`;
+  const text = `Hi ${recipientName},\n\nCongratulations! ${senderName} (Team Lead of "${teamTitle}") has granted you a milestone reward of ₹${amount}.\n\nMilestone Reason: ${reason}\n${utrNumber ? `UPI Reference (UTR): ${utrNumber}\n` : ''}\nKeep up the great collaborative work!\n\nBest regards,\nCampusCollab Team`;
+  const html = `
+    <div style="font-family: Arial, sans-serif; background: #0f172a; padding: 30px; color: #f8fafc;">
+      <div style="max-width: 550px; margin: auto; background: #1e293b; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); padding: 25px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <div style="font-size: 32px; margin-bottom: 8px;">🎉</div>
+          <h2 style="color: #38bdf8; margin: 0; font-size: 22px;">Milestone Reward Granted!</h2>
+          <p style="color: #94a3b8; font-size: 13px; margin: 4px 0 0 0;">CampusCollab Project Team Recognition</p>
+        </div>
+
+        <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 16px; padding: 20px; text-align: center; margin-bottom: 20px;">
+          <div style="font-size: 12px; color: #10b981; font-weight: bold; text-transform: uppercase;">Amount Dispatched</div>
+          <div style="font-size: 36px; font-weight: 900; color: #10b981; margin: 6px 0;">₹${amount}</div>
+          <div style="font-size: 13px; color: #cbd5e1;">Sent by <strong>${senderName}</strong> for <strong>${teamTitle}</strong></div>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.03); border-radius: 12px; padding: 16px; margin-bottom: 20px; font-size: 13px;">
+          <div style="color: #94a3b8; font-size: 11px; font-weight: bold; text-transform: uppercase; margin-bottom: 6px;">Milestone Contribution:</div>
+          <div style="color: #f1f5f9; font-style: italic;">"${reason}"</div>
+          ${utrNumber ? `<div style="margin-top: 10px; font-size: 12px; color: #94a3b8;">UPI UTR / Ref: <strong style="color: #cbd5e1; font-family: monospace;">${utrNumber}</strong></div>` : ''}
+        </div>
+
+        <div style="text-align: center;">
+          <a href="${getBaseAppUrl()}/teams" style="display: inline-block; background: #2563eb; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 12px; font-weight: bold; font-size: 13px;">
+            Open CampusCollab Teams
+          </a>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return sendUnifiedEmail({
+    to: toEmail,
+    subject,
+    text,
+    html,
+    fromName: 'CampusCollab Rewards',
+  });
+};
+
 module.exports = {
   isAdminEmail,
   sendOtpEmail,
@@ -652,4 +702,5 @@ module.exports = {
   sendTeamJoinedConfirmationEmail,
   sendPeerCollaborationRequestEmail,
   sendTechnicalTestAssignedEmail,
+  sendRewardDispatchedEmail,
 };

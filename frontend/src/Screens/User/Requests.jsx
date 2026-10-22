@@ -30,9 +30,11 @@ import {
   Maximize2,
   Play,
   RotateCw,
+  Lock,
+  Check,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { getMyRequests, updateRequestStatus, requestPeerInteraction, deleteRequest, assignTechnicalTest, reviewTechnicalTest, getAssessmentQuestions, aiEvaluateAssessment } from '../../API/peers';
+import { getMyRequests, updateRequestStatus, requestPeerInteraction, deleteRequest, assignTechnicalTest, reviewTechnicalTest, getAssessmentQuestions, aiEvaluateAssessment, markInteractionCompleted } from '../../API/peers';
 import { getMe } from '../../API/auth';
 import PeerProfileModal from '../../Components/PeerProfileModal';
 
@@ -139,7 +141,7 @@ const VideoSyncRow = ({ req, onOpenInteraction }) => {
             <p className="text-[11px] text-white/50">Scheduled Video Call</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
           {req.meetingLink && (
             <a
               href={req.meetingLink}
@@ -151,6 +153,20 @@ const VideoSyncRow = ({ req, onOpenInteraction }) => {
               <ExternalLink className="w-3 h-3" />
             </a>
           )}
+          {req.interactionCompleted ? (
+            <span className="px-2.5 py-1 rounded-xl text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+              <CheckCircle2 className="w-3.5 h-3.5" /> Call Verified
+            </span>
+          ) : onMarkSyncCompleted ? (
+            <button
+              type="button"
+              onClick={() => onMarkSyncCompleted(req.id)}
+              className="px-2.5 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 font-bold text-xs flex items-center gap-1 transition-all cursor-pointer"
+              title="Confirm video sync call has been held to satisfy verification"
+            >
+              <Check className="w-3.5 h-3.5" /> Mark Call Verified
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => onOpenInteraction(req)}
@@ -666,6 +682,21 @@ int main() {
     }
   };
 
+  const handleMarkSyncCompleted = async (requestId) => {
+    try {
+      const res = await markInteractionCompleted(requestId);
+      if (res?.success) {
+        setActionMsg('Video sync interaction marked as verified and completed! ✓');
+        setTimeout(() => setActionMsg(''), 4000);
+        loadRequests();
+      } else {
+        alert(res?.message || 'Could not verify sync.');
+      }
+    } catch {
+      alert('Error updating interaction status.');
+    }
+  };
+
   const handleDeleteRequest = async (id, peerName = 'this request') => {
     if (!window.confirm(`Are you sure you want to delete this request from the database?`)) return;
     try {
@@ -940,7 +971,7 @@ int main() {
 
                     {/* Actionable Sub-Cards: Video Sync & Coding Assessment */}
                     <div className="space-y-2 pt-1">
-                      <VideoSyncRow req={req} onOpenInteraction={openInteractionModal} />
+                      <VideoSyncRow req={req} onOpenInteraction={openInteractionModal} onMarkSyncCompleted={handleMarkSyncCompleted} />
                       <AssessmentRow
                         req={req}
                         currentUserId={currentUser?._id || currentUser?.id}
@@ -949,6 +980,29 @@ int main() {
                         onOpenReview={openReviewModal}
                       />
                     </div>
+
+                    {/* Verification Lock Status Banner */}
+                    {(() => {
+                      const testPending = req.testDetails?.isAssigned && req.testDetails?.status !== 'completed';
+                      const syncPending = req.interactionRequested && !req.interactionCompleted;
+                      const isLocked = testPending || syncPending;
+                      if (!isLocked || req.status !== 'pending') return null;
+
+                      const pendingItems = [
+                        testPending && 'Technical Coding Test must be completed',
+                        syncPending && 'Scheduled Video Call must be held & verified',
+                      ].filter(Boolean);
+
+                      return (
+                        <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-400/25 text-amber-300 text-xs flex items-center gap-2.5">
+                          <Lock className="w-4 h-4 shrink-0 text-amber-400" />
+                          <div className="min-w-0">
+                            <span className="font-bold">Acceptance Locked:</span>
+                            <span className="text-white/80 ml-1.5">{pendingItems.join(' • ')}</span>
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     {/* Footer Actions */}
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-white/10">
@@ -966,13 +1020,35 @@ int main() {
                       <div className="flex items-center justify-end gap-2 flex-wrap">
                         {req.status === 'pending' && (
                           <>
-                            <button
-                              onClick={() => handleRespond(req.id, 'accepted')}
-                              className="py-1.5 px-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                            >
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                              <span>{req.requestType === 'team_join_request' ? 'Accept & Add' : req.team ? 'Accept & Join' : 'Accept Offer'}</span>
-                            </button>
+                            {(() => {
+                              const testPending = req.testDetails?.isAssigned && req.testDetails?.status !== 'completed';
+                              const syncPending = req.interactionRequested && !req.interactionCompleted;
+                              const isLocked = testPending || syncPending;
+
+                              if (isLocked) {
+                                const reason = [testPending && 'Coding Test Pending', syncPending && 'Video Call Pending'].filter(Boolean).join(' & ');
+                                return (
+                                  <button
+                                    disabled
+                                    title={`Acceptance is locked until verifications are complete: ${reason}`}
+                                    className="py-1.5 px-3.5 rounded-xl bg-white/5 border border-white/10 text-white/40 font-bold text-xs flex items-center justify-center gap-1.5 cursor-not-allowed opacity-70"
+                                  >
+                                    <Lock className="w-3.5 h-3.5 text-amber-400" />
+                                    <span>{req.requestType === 'team_join_request' ? 'Accept & Add (Locked)' : req.team ? 'Accept & Join (Locked)' : 'Accept Offer (Locked)'}</span>
+                                  </button>
+                                );
+                              }
+
+                              return (
+                                <button
+                                  onClick={() => handleRespond(req.id, 'accepted')}
+                                  className="py-1.5 px-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                                >
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  <span>{req.requestType === 'team_join_request' ? 'Accept & Add' : req.team ? 'Accept & Join' : 'Accept Offer'}</span>
+                                </button>
+                              );
+                            })()}
                             <button
                               onClick={() => handleRespond(req.id, 'rejected')}
                               className="glass-btn-ghost py-1.5 px-3 rounded-xl text-red-300 hover:text-red-200 border-red-500/30 hover:bg-red-500/10 font-bold text-xs transition-all flex items-center justify-center gap-1 cursor-pointer"
@@ -1097,7 +1173,7 @@ int main() {
 
                     {/* Actionable Sub-Cards: Video Sync & Coding Assessment */}
                     <div className="space-y-2 pt-1">
-                      <VideoSyncRow req={req} onOpenInteraction={openInteractionModal} />
+                      <VideoSyncRow req={req} onOpenInteraction={openInteractionModal} onMarkSyncCompleted={handleMarkSyncCompleted} />
                       <AssessmentRow
                         req={req}
                         currentUserId={currentUser?._id || currentUser?.id}

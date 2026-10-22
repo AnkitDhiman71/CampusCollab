@@ -253,6 +253,8 @@ const getMyRequests = async (req, res) => {
           status: r.status,
           interactionRequested: r.interactionRequested || false,
           interactionRequestedAt: r.interactionRequestedAt,
+          interactionCompleted: r.interactionCompleted || false,
+          interactionCompletedAt: r.interactionCompletedAt,
           scheduledDate: r.scheduledDate || '',
           scheduledTime: r.scheduledTime || '',
           duration: r.duration || 30,
@@ -291,6 +293,8 @@ const getMyRequests = async (req, res) => {
           status: r.status,
           interactionRequested: r.interactionRequested || false,
           interactionRequestedAt: r.interactionRequestedAt,
+          interactionCompleted: r.interactionCompleted || false,
+          interactionCompletedAt: r.interactionCompletedAt,
           scheduledDate: r.scheduledDate || '',
           scheduledTime: r.scheduledTime || '',
           duration: r.duration || 30,
@@ -320,6 +324,24 @@ const updateRequestStatus = async (req, res) => {
 
     if (!request) {
       return res.status(404).json({ success: false, message: 'Request not found.' });
+    }
+
+    if (status === 'accepted') {
+      // 1. Technical Test verification check
+      if (request.testDetails?.isAssigned && request.testDetails?.status !== 'completed') {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot accept request: The assigned technical assessment has not been completed yet.',
+        });
+      }
+
+      // 2. Video Sync verification check
+      if (request.interactionRequested && !request.interactionCompleted) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot accept request: The scheduled video sync interaction must be held and verified before acceptance.',
+        });
+      }
     }
 
     request.status = status;
@@ -1008,6 +1030,32 @@ const runCodeSnippet = async (req, res) => {
   }
 };
 
+const markInteractionCompleted = async (req, res) => {
+  try {
+    const request = await Request.findOne({
+      _id: req.params.id,
+      $or: [{ recipient: req.user._id }, { sender: req.user._id }],
+    });
+
+    if (!request) {
+      return res.status(404).json({ success: false, message: 'Request not found.' });
+    }
+
+    request.interactionCompleted = true;
+    request.interactionCompletedAt = new Date();
+    await request.save();
+
+    return res.json({
+      success: true,
+      message: 'Video sync interaction marked as verified and completed.',
+      interactionCompleted: true,
+      interactionCompletedAt: request.interactionCompletedAt,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = { 
   getAllPeers, 
   sendRequest, 
@@ -1025,5 +1073,6 @@ module.exports = {
   aiExplainCode,
   aiEvaluateAssessment,
   runCodeSnippet,
+  markInteractionCompleted,
 };
 

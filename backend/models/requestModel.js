@@ -29,6 +29,13 @@ const requestSchema = new mongoose.Schema(
     interactionRequestedAt: {
       type: Date,
     },
+    interactionCompleted: {
+      type: Boolean,
+      default: false,
+    },
+    interactionCompletedAt: {
+      type: Date,
+    },
     scheduledDate: {
       type: String,
       default: '',

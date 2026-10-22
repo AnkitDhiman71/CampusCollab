@@ -64,7 +64,7 @@ const createTeam = async (req, res) => {
       }).catch((err) => console.error('Error fetching candidate user:', err));
     }
 
-    const populatedTeam = await Team.findById(team._id).populate('lead members', 'name email department skills ranking rankingPoints');
+    const populatedTeam = await Team.findById(team._id).populate('lead members', 'name email department skills ranking rankingPoints upiId');
     return res.status(201).json({ success: true, message: 'Team created successfully!', team: populatedTeam });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
@@ -79,7 +79,7 @@ const getUserTeams = async (req, res) => {
     const filter = scope === 'my' && currentUserId ? { members: req.user._id } : {};
 
     const teams = await Team.find(filter)
-      .populate('lead members tasks.assignedTo tasks.createdBy', 'name email department skills ranking rankingPoints')
+      .populate('lead members tasks.assignedTo tasks.createdBy', 'name email department skills ranking rankingPoints upiId')
       .sort({ createdAt: -1 });
 
     // Find pending join requests initiated by this user

@@ -20,11 +20,15 @@ import {
   Trash2,
   Kanban,
   MessageSquare,
-  Lock
+  Lock,
+  Gift,
+  QrCode,
+  IndianRupee,
 } from 'lucide-react';
 import { getTeams, createNewTeam, invitePeerToTeam, requestToJoinTeam, cancelJoinRequest } from '../../API/teams';
 import { getPeers } from '../../API/peers';
 import { getMe } from '../../API/auth';
+import { sendTeamReward, getTeamRewards } from '../../API/rewards';
 import TeamKanbanBoard from '../../Components/TeamKanbanBoard';
 
 const getUniqueTeamMembers = (team) => {
@@ -90,6 +94,94 @@ export function Teams() {
   const [joinNote, setJoinNote] = useState('');
   const [sendingJoinRequest, setSendingJoinRequest] = useState(false);
   const [joinError, setJoinError] = useState('');
+
+  // Reward Modal State (Team Lead granting UPI reward to member)
+  const [rewardModalTeam, setRewardModalTeam] = useState(null);
+  const [rewardRecipientId, setRewardRecipientId] = useState('');
+  const [rewardAmount, setRewardAmount] = useState('250');
+  const [rewardReason, setRewardReason] = useState('Outstanding milestone contribution');
+  const [rewardUtr, setRewardUtr] = useState('');
+  const [rewardSending, setRewardSending] = useState(false);
+  const [rewardErr, setRewardErr] = useState('');
+  const [rewardSuccessMsg, setRewardSuccessMsg] = useState('');
+  const [teamRewards, setTeamRewards] = useState([]);
+  const [showRewardHistory, setShowRewardHistory] = useState(false);
+
+  const openRewardModal = async (team) => {
+    setRewardModalTeam(team);
+    setRewardErr('');
+    setRewardSuccessMsg('');
+    setRewardAmount('250');
+    setRewardReason('Outstanding milestone contribution');
+    setRewardUtr('');
+    setShowRewardHistory(false);
+
+    const leadId = (team.lead?._id || team.lead)?.toString();
+    const members = getUniqueTeamMembers(team).filter(
+      (m) => (m._id || m)?.toString() !== leadId
+    );
+    if (members.length > 0) {
+      setRewardRecipientId((members[0]._id || members[0]).toString());
+    } else {
+      setRewardRecipientId('');
+    }
+
+    try {
+      const res = await getTeamRewards(team._id || team.id);
+      if (res?.success) {
+        setTeamRewards(res.rewards || []);
+      }
+    } catch {
+      // quiet fail
+    }
+  };
+
+  const handleSendReward = async (e) => {
+    if (e) e.preventDefault();
+    if (!rewardModalTeam || !rewardRecipientId) {
+      setRewardErr('Please select a team member to reward.');
+      return;
+    }
+    const num = Number(rewardAmount);
+    if (isNaN(num) || num <= 0) {
+      setRewardErr('Please enter a valid reward amount (e.g. ₹100, ₹250, ₹500).');
+      return;
+    }
+    if (!rewardReason.trim()) {
+      setRewardErr('Please provide a milestone contribution note.');
+      return;
+    }
+
+    setRewardSending(true);
+    setRewardErr('');
+    try {
+      const res = await sendTeamReward({
+        teamId: rewardModalTeam._id || rewardModalTeam.id,
+        recipientId: rewardRecipientId,
+        amount: num,
+        reason: rewardReason.trim(),
+        utrNumber: rewardUtr.trim(),
+      });
+
+      if (res?.success) {
+        setRewardSuccessMsg(res.message || 'Milestone reward recorded & notification dispatched successfully!');
+        if (res.reward) {
+          setTeamRewards((prev) => [res.reward, ...prev]);
+        }
+        setTimeout(() => {
+          setRewardModalTeam(null);
+          setRewardSuccessMsg('');
+          fetchTeamsData();
+        }, 3000);
+      } else {
+        setRewardErr(res.message || 'Failed to record reward.');
+      }
+    } catch {
+      setRewardErr('Network error while recording reward.');
+    } finally {
+      setRewardSending(false);
+    }
+  };
 
   const fetchTeamsData = async () => {
     setLoading(true);
@@ -647,6 +739,18 @@ export function Teams() {
                       </button>
                     )}
 
+                    {/* If user is lead -> Reward Teammate Button */}
+                    {team.isLead && (
+                      <button
+                        onClick={() => openRewardModal(team)}
+                        className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 font-bold text-xs flex items-center gap-1.5 border border-amber-400/30 transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95"
+                        title="Grant a milestone bounty or reward to a team member"
+                      >
+                        <Gift className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Reward</span>
+                      </button>
+                    )}
+
                     {/* If user is lead or member -> Invite Peer button */}
                     {team.isLead || team.isMember ? (
                       <button
@@ -1106,6 +1210,328 @@ export function Teams() {
                   )}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL 4: Reward Teammate via Dynamic UPI QR */}
+        {rewardModalTeam && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-2xl p-3 sm:p-4 overflow-y-auto animate-fade-in font-sans">
+            <div className="w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-2xl sm:rounded-[32px] glass-panel p-4 sm:p-7 shadow-2xl space-y-4 relative animate-in fade-in zoom-in-95 duration-200 border border-amber-400/30">
+              
+              {/* Header */}
+              <div className="flex justify-between items-center pb-3 border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-2xl bg-amber-500/20 text-amber-300 border border-amber-400/30 shadow-md">
+                    <Gift className="w-5 h-5 text-amber-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+                      <span>Grant Milestone Reward</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
+                        Direct UPI
+                      </span>
+                    </h3>
+                    <p className="text-xs text-white/70">
+                      Team: <span className="font-semibold text-amber-300">{rewardModalTeam.title}</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowRewardHistory(!showRewardHistory)}
+                    className="px-2.5 py-1 rounded-xl glass-btn-ghost text-amber-300 hover:text-white text-xs font-bold transition-all cursor-pointer border border-amber-400/30"
+                  >
+                    {showRewardHistory ? '← Reward Form' : `History (${teamRewards.length})`}
+                  </button>
+                  <button
+                    onClick={() => setRewardModalTeam(null)}
+                    className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white transition-all cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* View 1: Reward History Ledger */}
+              {showRewardHistory ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-xs font-bold text-white/80">
+                    <span>Milestone Rewards Granted in this Team</span>
+                    <span className="text-emerald-400">Total: ₹{teamRewards.reduce((s, r) => s + (r.amount || 0), 0)}</span>
+                  </div>
+
+                  {teamRewards.length === 0 ? (
+                    <div className="p-8 rounded-2xl glass-tile text-center space-y-1 text-white/60 text-xs">
+                      <Gift className="w-8 h-8 mx-auto text-white/30 mb-2" />
+                      <p className="font-bold text-white">No Rewards Granted Yet</p>
+                      <p>When you reward a teammate, the record and milestone will appear here.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
+                      {teamRewards.map((r) => (
+                        <div key={r._id} className="p-3.5 rounded-2xl glass-tile border border-white/10 space-y-1.5 text-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-white text-sm">
+                              {r.recipient?.name || 'Teammate'}
+                            </span>
+                            <span className="font-black text-emerald-400 text-sm">
+                              +₹{r.amount}
+                            </span>
+                          </div>
+                          <p className="text-white/80 italic font-medium">"{r.reason}"</p>
+                          <div className="flex items-center justify-between text-[11px] text-white/50 pt-1 border-t border-white/10">
+                            <span>From: {r.sender?.name || 'Lead'}</span>
+                            <span>{new Date(r.createdAt).toLocaleDateString()}</span>
+                          </div>
+                          {r.utrNumber && (
+                            <div className="text-[10px] font-mono text-white/60">
+                              UTR / Ref: <span className="text-amber-300 font-bold">{r.utrNumber}</span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => setShowRewardHistory(false)}
+                    className="w-full py-2.5 rounded-xl glass-btn-cta text-slate-950 font-black text-xs cursor-pointer"
+                  >
+                    Send New Milestone Reward
+                  </button>
+                </div>
+              ) : rewardSuccessMsg ? (
+                /* Success View */
+                <div className="text-center py-6 space-y-3 animate-in fade-in">
+                  <div className="w-14 h-14 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-400 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/20">
+                    <CheckCircle2 className="w-8 h-8" />
+                  </div>
+                  <h4 className="text-lg font-black text-white">Reward Dispatched!</h4>
+                  <p className="text-xs text-white/80 max-w-sm mx-auto leading-relaxed">
+                    {rewardSuccessMsg}
+                  </p>
+                  <p className="text-[11px] text-emerald-300 font-semibold">
+                    The member has been notified via email and in-app notification drawer.
+                  </p>
+                </div>
+              ) : (
+                /* View 2: Grant Reward Form */
+                (() => {
+                  const leadId = (rewardModalTeam.lead?._id || rewardModalTeam.lead)?.toString();
+                  const eligibleMembers = getUniqueTeamMembers(rewardModalTeam).filter(
+                    (m) => (m._id || m)?.toString() !== leadId
+                  );
+                  const selectedMember = eligibleMembers.find(
+                    (m) => (m._id || m)?.toString() === rewardRecipientId
+                  ) || eligibleMembers[0];
+                  const hasUpi = Boolean(selectedMember?.upiId?.trim());
+                  const upiId = selectedMember?.upiId?.trim() || '';
+                  const memberName = selectedMember?.name || 'Team Member';
+                  const numericAmount = Number(rewardAmount) || 250;
+
+                  const upiUri = hasUpi && numericAmount > 0
+                    ? `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(memberName)}&am=${encodeURIComponent(numericAmount)}&cu=INR&tn=${encodeURIComponent(rewardReason.trim() || 'CampusCollab Milestone Reward')}`
+                    : '';
+                  const qrCodeUrl = upiUri
+                    ? `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(upiUri)}&margin=8`
+                    : '';
+
+                  return (
+                    <form onSubmit={handleSendReward} className="space-y-4 text-xs">
+                      {rewardErr && (
+                        <div className="p-3 rounded-2xl bg-red-500/20 border border-red-400/40 text-red-200 text-xs font-semibold flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4 shrink-0 text-red-300" />
+                          <span>{rewardErr}</span>
+                        </div>
+                      )}
+
+                      {eligibleMembers.length === 0 ? (
+                        <div className="p-6 rounded-2xl glass-tile text-center space-y-2 text-white/70">
+                          <Users className="w-8 h-8 mx-auto text-white/40" />
+                          <p className="font-bold text-white text-sm">No Members to Reward</p>
+                          <p className="text-xs">
+                            This project team currently has no other members. Invite or accept peers to grant milestone rewards.
+                          </p>
+                        </div>
+                      ) : (
+                        <>
+                          {/* 1. Select Team Member */}
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-white/90 block">
+                              Select Teammate to Reward *
+                            </label>
+                            <select
+                              value={rewardRecipientId}
+                              onChange={(e) => setRewardRecipientId(e.target.value)}
+                              className="w-full p-3 glass-input-field rounded-2xl text-xs font-bold text-white bg-slate-900 cursor-pointer appearance-none"
+                            >
+                              {eligibleMembers.map((m) => (
+                                <option key={m._id} value={m._id} className="bg-slate-900 text-white">
+                                  {m.name} ({m.department || 'Student'}) {m.upiId ? `✓ UPI Configured` : `⚠️ No UPI ID`}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Member UPI Status Alert */}
+                          {hasUpi ? (
+                            <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between text-xs">
+                              <div className="flex items-center gap-2">
+                                <QrCode className="w-4 h-4 text-emerald-400 shrink-0" />
+                                <div>
+                                  <span className="text-[10px] text-white/60 uppercase font-bold block">Recipient UPI ID</span>
+                                  <span className="font-mono font-bold text-emerald-300">{upiId}</span>
+                                </div>
+                              </div>
+                              <span className="text-[10px] font-bold text-emerald-400 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30">
+                                Verified UPI
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-400/30 text-amber-200 text-xs space-y-1">
+                              <p className="font-bold flex items-center gap-1.5 text-amber-300">
+                                <AlertCircle className="w-4 h-4 shrink-0" />
+                                <span>UPI ID Not Added Yet</span>
+                              </p>
+                              <p className="text-[11px] text-white/80">
+                                <strong>{memberName}</strong> has not added their UPI ID in their Profile yet. You can ask them to edit their Profile and add their UPI ID to enable live QR scanning.
+                              </p>
+                            </div>
+                          )}
+
+                          {/* 2. Amount & Quick Pills */}
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <label className="text-xs font-bold text-white/90">
+                                Reward Amount (₹ INR) *
+                              </label>
+                              <div className="flex items-center gap-1">
+                                {['100', '250', '500', '1000'].map((amt) => (
+                                  <button
+                                    key={amt}
+                                    type="button"
+                                    onClick={() => setRewardAmount(amt)}
+                                    className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                                      rewardAmount === amt
+                                        ? 'bg-amber-400 text-slate-950 font-black'
+                                        : 'bg-white/10 text-white/80 hover:bg-white/20'
+                                    }`}
+                                  >
+                                    ₹{amt}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="relative">
+                              <span className="absolute left-3.5 top-3 text-amber-300 font-bold text-sm">₹</span>
+                              <input
+                                type="number"
+                                min="1"
+                                required
+                                value={rewardAmount}
+                                onChange={(e) => setRewardAmount(e.target.value)}
+                                placeholder="e.g. 500"
+                                className="w-full pl-8 pr-3 py-2.5 glass-input-field rounded-2xl text-xs font-bold text-white placeholder-white/40"
+                              />
+                            </div>
+                          </div>
+
+                          {/* 3. Milestone Reason */}
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-white/90 block">
+                              Milestone Contribution Note *
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              value={rewardReason}
+                              onChange={(e) => setRewardReason(e.target.value)}
+                              placeholder="e.g. Completed compiler engine & API integration"
+                              className="w-full p-2.5 glass-input-field rounded-2xl text-xs font-medium text-white placeholder-white/40"
+                            />
+                          </div>
+
+                          {/* 4. Live Scannable Dynamic UPI QR Code */}
+                          {hasUpi && qrCodeUrl && (
+                            <div className="p-4 rounded-3xl bg-slate-950/70 border border-amber-400/30 text-center space-y-3">
+                              <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-amber-300">
+                                <QrCode className="w-4 h-4" />
+                                <span>Scan to Pay ₹{numericAmount} with any UPI App</span>
+                              </div>
+
+                              <div className="bg-white p-3.5 rounded-2xl inline-block shadow-xl">
+                                <img
+                                  src={qrCodeUrl}
+                                  alt="Dynamic UPI QR Code"
+                                  className="w-44 h-44 object-contain mx-auto"
+                                />
+                              </div>
+
+                              <p className="text-[11px] text-white/70">
+                                Scan using <strong>Google Pay</strong>, <strong>PhonePe</strong>, or <strong>Paytm</strong>. The amount and recipient are pre-filled automatically!
+                              </p>
+
+                              {/* Mobile 1-Tap Deep Link */}
+                              <a
+                                href={upiUri}
+                                className="sm:hidden block w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs text-center shadow-lg transition-all"
+                              >
+                                Pay via UPI App (GPay / PhonePe) &rarr;
+                              </a>
+                            </div>
+                          )}
+
+                          {/* 5. UPI UTR / Reference ID */}
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-semibold text-white/80 block">
+                              UPI UTR / Reference ID <span className="text-white/40 font-normal">(Optional from banking app)</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={rewardUtr}
+                              onChange={(e) => setRewardUtr(e.target.value)}
+                              placeholder="e.g. 412345678901 (from payment confirmation)"
+                              className="w-full p-2.5 glass-input-field rounded-2xl text-xs font-mono text-white placeholder-white/40"
+                            />
+                          </div>
+
+                          {/* Modal Actions */}
+                          <div className="flex gap-2 pt-2">
+                            <button
+                              type="button"
+                              onClick={() => setRewardModalTeam(null)}
+                              disabled={rewardSending}
+                              className="glass-btn-ghost flex-1 py-2.5 text-white font-bold text-xs rounded-xl cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="submit"
+                              disabled={rewardSending || !rewardRecipientId || !rewardAmount}
+                              className="glass-btn-cta flex-1 py-2.5 text-slate-950 font-black text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-all"
+                            >
+                              {rewardSending ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  <span>Recording Reward...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Gift className="w-3.5 h-3.5" />
+                                  <span>Confirm Reward Dispatched</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </form>
+                  );
+                })()
+              )}
+
             </div>
           </div>
         )}

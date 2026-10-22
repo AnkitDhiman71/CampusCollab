@@ -156,6 +156,16 @@ export const executeCodeApi = async ({ code, language, stdin = '' }) => {
   return res.json();
 };
 
+export const markInteractionCompleted = async (requestId) => {
+  const res = await fetch(`${BASE_URL}/requests/${requestId}/interaction/complete`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  });
+  return res.json();
+};
+
+
 
 
 

@@ -155,7 +155,7 @@ const getMe = async (req, res) => {
 
 const updateProfile = async (req, res) => {
   try {
-    const { name, department, skills, bio, githubUrl, projects, repositories, githubStats, openToWork } = req.body;
+    const { name, department, skills, bio, githubUrl, projects, repositories, githubStats, openToWork, upiId } = req.body;
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
 
@@ -166,6 +166,9 @@ const updateProfile = async (req, res) => {
     if (githubUrl !== undefined) {
       const trimmed = githubUrl.trim();
       user.githubUrl = trimmed ? (trimmed.startsWith('http') ? trimmed : `https://github.com/${trimmed.replace(/^@/, '')}`) : '';
+    }
+    if (upiId !== undefined) {
+      user.upiId = upiId.trim();
     }
     if (projects !== undefined) user.projects = projects;
     if (repositories !== undefined) user.repositories = repositories;

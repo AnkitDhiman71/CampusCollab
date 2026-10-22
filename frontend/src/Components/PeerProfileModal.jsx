@@ -16,6 +16,7 @@ import {
   Video,
   Paperclip,
   GitFork,
+  Lock,
 } from 'lucide-react';
 
 const GithubIcon = ({ className = 'w-5 h-5' }) => (
@@ -433,15 +434,37 @@ export function PeerProfileModal({
                     <Video className="w-3.5 h-3.5" /> Schedule Sync / Call
                   </button>
                 )}
-                <button
-                  onClick={() => {
-                    onAccept(requestContext.id);
-                    onClose();
-                  }}
-                  className="flex-1 sm:flex-none py-2 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-md shadow-emerald-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5" /> {requestContext.team ? 'Accept & Join Team' : 'Accept Connection'}
-                </button>
+                {(() => {
+                  const testPending = requestContext?.testDetails?.isAssigned && requestContext?.testDetails?.status !== 'completed';
+                  const syncPending = requestContext?.interactionRequested && !requestContext?.interactionCompleted;
+                  const isLocked = testPending || syncPending;
+
+                  if (isLocked) {
+                    const reason = [testPending && 'Coding Test Pending', syncPending && 'Video Call Pending'].filter(Boolean).join(' & ');
+                    return (
+                      <button
+                        disabled
+                        title={`Acceptance locked until verifications are satisfied: ${reason}`}
+                        className="flex-1 sm:flex-none py-2 px-4 rounded-xl bg-white/5 border border-white/15 text-white/40 font-bold text-xs flex items-center justify-center gap-1.5 cursor-not-allowed opacity-70"
+                      >
+                        <Lock className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Accept Locked ({reason})</span>
+                      </button>
+                    );
+                  }
+
+                  return (
+                    <button
+                      onClick={() => {
+                        onAccept(requestContext.id);
+                        onClose();
+                      }}
+                      className="flex-1 sm:flex-none py-2 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-md shadow-emerald-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" /> {requestContext.team ? 'Accept & Join Team' : 'Accept Connection'}
+                    </button>
+                  );
+                })()}
                 <button
                   onClick={() => {
                     onReject(requestContext.id);
