@@ -8,6 +8,7 @@ const adminRoutes = require('./routes/adminRoutes');
 const peerRoutes = require('./routes/peerRoutes');
 const contactRoutes = require('./routes/contactRoutes');
 const teamRoutes = require('./routes/teamRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 const { securityLogger } = require('./middlewares/securityLoggerMiddleware')
 const app = express();
 app.use(cors({ origin: true, credentials: true }));
@@ -22,6 +23,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/peers', peerRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/teams', teamRoutes);
+app.use('/api/notifications', notificationRoutes);
 // Serve static frontend files in production if frontend/dist exists
 const fs = require('fs');
 const os = require('os');

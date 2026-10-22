@@ -2,7 +2,8 @@ const Team = require('../models/teamModel');
 const Request = require('../models/requestModel');
 const User = require('../models/userModel');
 const TeamMessage = require('../models/teamMessageModel');
-const { sendTeamInviteEmail, sendTeamJoinRequestEmail } = require('../config/nodemailer');
+const { sendTeamInviteEmail, sendTeamJoinRequestEmail, sendTeamJoinedConfirmationEmail } = require('../config/nodemailer');
+const { createNotification } = require('../utils/notificationService');
 
 const createTeam = async (req, res) => {
   try {
@@ -39,6 +40,28 @@ const createTeam = async (req, res) => {
         },
         { $set: { team: team._id, status: 'accepted' } }
       );
+
+      // Dispatch In-App Notification & Email to Candidate
+      createNotification({
+        recipient: candidateId,
+        sender: req.user._id,
+        type: 'TEAM_ACCEPTED',
+        title: 'Congratulations!',
+        message: `Congratulations! You have been accepted into Team "${team.title}"`,
+        link: '/teams',
+      });
+
+      User.findById(candidateId).then((candidateUser) => {
+        if (candidateUser && candidateUser.email) {
+          sendTeamJoinedConfirmationEmail({
+            toEmail: candidateUser.email,
+            memberName: candidateUser.name || 'Student Member',
+            teamTitle: team.title,
+            teamLeadName: req.user.name || 'Team Lead',
+            teamLeadEmail: req.user.email || '',
+          }).catch((err) => console.error('Failed to send team joined email:', err));
+        }
+      }).catch((err) => console.error('Error fetching candidate user:', err));
     }
 
     const populatedTeam = await Team.findById(team._id).populate('lead members', 'name email department skills ranking rankingPoints');

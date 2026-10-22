@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Users, Search, Send, UserCheck, User, Mail, LogIn, LogOut, ShieldCheck, Menu, X, MessageSquare } from 'lucide-react';
 import { getMe, logoutUser } from '../API/auth';
 import ThemeToggle from './ThemeToggle';
+import NotificationDrawer from './NotificationDrawer';
 
 export function Navbar() {
   const location = useLocation();
@@ -111,6 +112,8 @@ export function Navbar() {
 
             {currentUser ? (
               <>
+                <NotificationDrawer />
+
                 {currentUser.role === 'admin' && (
                   <Link
                     to="/admin"
@@ -158,6 +161,8 @@ export function Navbar() {
           {/* 4. Mobile Menu & Theme Toggle Trigger */}
           <div className="flex lg:hidden items-center gap-2">
             <ThemeToggle />
+
+            {currentUser && <NotificationDrawer />}
 
             {currentUser && currentUser.role === 'admin' && (
               <Link

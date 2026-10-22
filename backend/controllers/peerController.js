@@ -5,6 +5,7 @@ const { sendVideoCallEmail, sendTeamJoinedConfirmationEmail, sendPeerCollaborati
 const { fetchGitHubData } = require('../utils/githubService');
 const { explainCodeSnippet, evaluateAssessmentCode } = require('../utils/geminiService');
 const { executeCode } = require('../utils/codeExecutionService');
+const { createNotification } = require('../utils/notificationService');
 const getAllPeers = async (req, res) => {
   try {
     const currentUserId = req.user ? req.user._id.toString() : null;
@@ -153,6 +154,16 @@ const sendRequest = async (req, res) => {
     } catch (mailErr) {
       console.error('[Email Notification Error] Could not dispatch peer collaboration email:', mailErr.message);
     }
+
+    // Dispatch In-App Notification to recipient
+    createNotification({
+      recipient: recipientId,
+      sender: req.user._id,
+      type: 'PEER_REQUEST',
+      title: 'New Peer Request',
+      message: `New peer request received from ${req.user.name}${role ? ` for "${role}"` : ''}`,
+      link: '/requests',
+    });
 
     return res.status(201).json({
       success: true,
@@ -375,6 +386,16 @@ const updateRequestStatus = async (req, res) => {
             teamLeadEmail: targetTeam.lead?.email || '',
           }).catch((err) => console.error('Failed to send team joined email:', err));
         }
+
+        // Dispatch In-App Notification to candidate
+        createNotification({
+          recipient: candidateId,
+          sender: req.user._id,
+          type: 'TEAM_ACCEPTED',
+          title: 'Congratulations!',
+          message: `Congratulations! You have been accepted into Team "${targetTeam.title}"`,
+          link: '/teams',
+        });
       }
     }
 
@@ -687,6 +708,16 @@ const assignTechnicalTest = async (req, res) => {
         testUrl,
       }).catch((err) => console.error('Failed to send technical test email:', err));
     }
+
+    // Dispatch In-App Notification to candidate
+    createNotification({
+      recipient: candidateUser._id,
+      sender: evaluatorUser._id,
+      type: 'TEST_ASSIGNED',
+      title: 'Technical Test Assigned',
+      message: `Technical test assigned: "${title.trim()}" due in 48 hours`,
+      link: `/test/${request._id}`,
+    });
 
     return res.json({
       success: true,
