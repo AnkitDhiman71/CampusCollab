@@ -241,7 +241,7 @@ export function Search() {
             No other peer candidates found. As more students register, they will automatically appear here!
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
             {filteredCandidates.map((candidate) => (
               <div
                 key={candidate.id}
@@ -331,8 +331,8 @@ export function Search() {
         )}
 
         {requestTarget && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xl p-4">
-            <div className="w-full max-w-md rounded-[32px] glass-panel p-6 sm:p-7 shadow-2xl space-y-4 relative">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xl p-3 sm:p-4 overflow-y-auto">
+            <div className="w-full max-w-md max-h-[92vh] overflow-y-auto rounded-2xl sm:rounded-[32px] glass-panel p-4 sm:p-7 shadow-2xl space-y-4 relative">
               <div className="flex justify-between items-center pb-2 border-b border-white/10">
                 <h3 className="text-base font-bold text-white tracking-tight">Request Help from {requestTarget.name}</h3>
                 <button

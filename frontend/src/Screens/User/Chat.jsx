@@ -36,6 +36,7 @@ export function Chat() {
   const [currentUser, setCurrentUser] = useState(null);
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [filterQuery, setFilterQuery] = useState('');
+  const [mobileShowChannels, setMobileShowChannels] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -159,7 +160,7 @@ export function Chat() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             
             {/* Left Column: Team Channel Selector */}
-            <div className="lg:col-span-4 rounded-[32px] glass-panel p-4 sm:p-5 space-y-4 shadow-xl">
+            <div className={`lg:col-span-4 rounded-2xl sm:rounded-[32px] glass-panel p-4 sm:p-5 space-y-4 shadow-xl ${mobileShowChannels ? 'block' : 'hidden lg:block'}`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -167,6 +168,13 @@ export function Chat() {
                     My Project Channels ({teams.length})
                   </h3>
                 </div>
+                {/* Mobile close channels button */}
+                <button
+                  onClick={() => setMobileShowChannels(false)}
+                  className="lg:hidden text-xs font-bold text-slate-500 hover:text-slate-900 dark:hover:text-white px-2 py-1 rounded-lg glass-tile cursor-pointer"
+                >
+                  Close ✕
+                </button>
               </div>
 
               {/* Search Channels */}
@@ -190,7 +198,10 @@ export function Chat() {
                   return (
                     <button
                       key={t._id || t.id}
-                      onClick={() => setSelectedTeam(t)}
+                      onClick={() => {
+                        setSelectedTeam(t);
+                        setMobileShowChannels(false);
+                      }}
                       className={`w-full text-left p-3.5 rounded-2xl transition-all cursor-pointer flex items-center justify-between gap-3 border ${
                         isSelected
                           ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25 border-blue-500'
@@ -229,7 +240,23 @@ export function Chat() {
             </div>
 
             {/* Right Column: Chat Box */}
-            <div className="lg:col-span-8">
+            <div className={`lg:col-span-8 ${mobileShowChannels ? 'hidden lg:block' : 'block'}`}>
+              {/* Mobile Channel Switcher Top Bar */}
+              <div className="flex lg:hidden items-center justify-between p-3 rounded-2xl glass-tile mb-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                  <span className="text-xs font-bold text-slate-800 dark:text-white truncate">
+                    {selectedTeam ? selectedTeam.title : 'No Channel Selected'}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setMobileShowChannels(true)}
+                  className="px-3 py-1.5 rounded-xl glass-btn-cta text-slate-950 font-black text-xs shrink-0 cursor-pointer shadow-sm"
+                >
+                  Switch Channel ({teams.length})
+                </button>
+              </div>
+
               {selectedTeam ? (
                 <TeamChatBox
                   key={selectedTeam._id || selectedTeam.id}

@@ -535,8 +535,8 @@ export function SecureCodingTest() {
           </div>
         </header>
 
-        <main className="max-w-2xl mx-auto w-full p-6">
-          <div className="p-8 rounded-[32px] bg-slate-900/90 border border-slate-800 shadow-2xl text-center space-y-6">
+        <main className="max-w-2xl mx-auto w-full p-3 sm:p-6">
+          <div className="p-5 sm:p-8 rounded-2xl sm:rounded-[32px] bg-slate-900/90 border border-slate-800 shadow-2xl text-center space-y-6">
             {isTerminated ? (
               <div className="w-16 h-16 rounded-full bg-red-500/15 border border-red-500/30 text-red-400 flex items-center justify-center mx-auto">
                 <AlertTriangle className="w-8 h-8" />

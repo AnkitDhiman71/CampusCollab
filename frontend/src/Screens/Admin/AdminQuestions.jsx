@@ -456,8 +456,8 @@ export function AdminQuestions() {
 
         {/* Modal: Add or Edit Question */}
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in font-sans">
-            <div className="w-full max-w-2xl max-h-[92vh] glass-panel p-6 sm:p-7 rounded-[32px] border border-blue-500/40 shadow-2xl flex flex-col space-y-4 overflow-y-auto">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in font-sans overflow-y-auto">
+            <div className="w-full max-w-2xl max-h-[92vh] glass-panel p-4 sm:p-7 rounded-2xl sm:rounded-[32px] border border-blue-500/40 shadow-2xl flex flex-col space-y-4 overflow-y-auto">
               <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-white/10 shrink-0">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-2xl bg-blue-500/20 border border-blue-500/40 text-blue-500 dark:text-sky-400 flex items-center justify-center shadow-md">

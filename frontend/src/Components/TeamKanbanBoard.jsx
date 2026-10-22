@@ -636,8 +636,8 @@ export function TeamKanbanBoard({ team, currentUser, onClose, onTeamUpdated, ini
 
       {/* CREATE NEW TASK MODAL */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="glass-panel w-full max-w-lg p-6 sm:p-7 rounded-[32px] space-y-5 shadow-2xl relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
+          <div className="glass-panel w-full max-w-lg max-h-[92vh] overflow-y-auto p-4 sm:p-7 rounded-2xl sm:rounded-[32px] space-y-5 shadow-2xl relative">
             <div className="flex items-center justify-between pb-3 border-b border-slate-200/60 dark:border-white/10">
               <div className="flex items-center gap-2">
                 <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-sky-400 text-white flex items-center justify-center font-black shadow-md shadow-blue-500/25">

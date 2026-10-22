@@ -54,12 +54,12 @@ export function PeerProfileModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-2xl p-4 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-2xl p-3 sm:p-4 overflow-y-auto"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="relative w-full max-w-2xl max-h-[90vh] flex flex-col rounded-[32px] glass-panel shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-2xl max-h-[92vh] flex flex-col rounded-2xl sm:rounded-[32px] glass-panel shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* Modal Header */}
-        <div className="relative p-6 sm:p-7 border-b border-white/10 bg-white/[0.04]">
+        <div className="relative p-4 sm:p-7 border-b border-white/10 bg-white/[0.04]">
           <div className="absolute top-5 right-5 flex items-center gap-2">
             {onOpenSendRequest && !profile.hasRequested && (
               <button
@@ -120,7 +120,7 @@ export function PeerProfileModal({
         </div>
 
         {/* Modal Scrollable Body */}
-        <div className="flex-1 overflow-y-auto p-6 sm:p-7 space-y-6 text-sm">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-7 space-y-6 text-sm">
           {/* Request Message Note Banner (if opened from a collaboration request) */}
           {requestContext?.message && (
             <div className="p-4 rounded-2xl glass-tile space-y-1 border border-amber-400/30">
@@ -419,7 +419,7 @@ export function PeerProfileModal({
             CampusCollab Verified Candidate Profile
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
             {requestContext?.status === 'pending' && onAccept && onReject ? (
               <>
                 {onOpenInteraction && (

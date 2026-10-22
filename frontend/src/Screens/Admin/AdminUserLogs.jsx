@@ -669,8 +669,8 @@ export function AdminUserLogs() {
         </main>
 
         {selectedLog && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 dark:bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200">
-            <div className="w-full max-w-3xl max-h-[92vh] glass-panel p-6 sm:p-7 rounded-[32px] border border-red-500/30 bg-white/95 dark:bg-slate-900/95 shadow-2xl flex flex-col space-y-5 relative overflow-hidden text-slate-900 dark:text-slate-100">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 dark:bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
+            <div className="w-full max-w-3xl max-h-[92vh] glass-panel p-4 sm:p-7 rounded-2xl sm:rounded-[32px] border border-red-500/30 bg-white/95 dark:bg-slate-900/95 shadow-2xl flex flex-col space-y-5 relative overflow-hidden text-slate-900 dark:text-slate-100">
               <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 shrink-0">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-2xl bg-red-500/15 dark:bg-red-500/20 border border-red-500/30 dark:border-red-500/40 text-red-500 dark:text-red-400 flex items-center justify-center font-black shadow-md shrink-0">

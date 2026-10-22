@@ -207,7 +207,7 @@ export function NotificationDrawer() {
 
       {/* Dropdown / Drawer Popover */}
       {isOpen && (
-        <div className="absolute right-0 mt-3 w-80 sm:w-96 rounded-3xl glass-card border border-slate-200/80 dark:border-white/10 shadow-2xl backdrop-blur-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute right-0 mt-3 w-[calc(100vw-24px)] sm:w-96 max-w-sm rounded-3xl glass-card border border-slate-200/80 dark:border-white/10 shadow-2xl backdrop-blur-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
           {/* Header */}
           <div className="p-4 border-b border-slate-200/60 dark:border-white/10 flex items-center justify-between bg-slate-50/50 dark:bg-white/[0.02]">
             <div className="flex items-center gap-2">
