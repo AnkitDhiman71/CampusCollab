@@ -167,13 +167,161 @@ function runProcessWithStdin(cmd, args, stdin, timeoutMs, cb) {
 }
 
 /**
+/**
+ * Judge0 Cloud Sandbox (Used when JUDGE0_API_KEY / RAPIDAPI_KEY is configured in .env)
+ */
+async function runWithJudge0({ code, language, stdin = '' }) {
+  const apiKey = process.env.JUDGE0_API_KEY || process.env.RAPIDAPI_KEY;
+  if (!apiKey) return null;
+
+  const JUDGE0_LANG_IDS = {
+    c: 50,
+    cpp: 54,
+    'c++': 54,
+    python: 71,
+    py: 71,
+    python3: 71,
+    javascript: 63,
+    js: 63,
+  };
+
+  const normLang = (language || '').toLowerCase().trim();
+  const langId = JUDGE0_LANG_IDS[normLang];
+  if (!langId) return null;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+  const response = await fetch('https://judge0-ce.p.rapidapi.com/submissions?base64_encoded=false&wait=true', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-RapidAPI-Key': apiKey,
+      'X-RapidAPI-Host': 'judge0-ce.p.rapidapi.com',
+    },
+    body: JSON.stringify({
+      source_code: code || '',
+      language_id: langId,
+      stdin: stdin || '',
+      cpu_time_limit: 5,
+      memory_limit: 128000,
+    }),
+    signal: controller.signal,
+  });
+
+  clearTimeout(timeoutId);
+  if (!response.ok) return null;
+
+  const data = await response.json();
+  const isCompileErr = Boolean(data.compile_output && !data.stdout) || data.status?.id === 6;
+
+  return {
+    success: data.status?.id === 3,
+    isCompileError: isCompileErr,
+    language,
+    output: (data.stdout || data.compile_output || data.stderr || (data.status?.id === 3 ? '✓ Code executed with 0 errors.' : data.status?.description || 'Execution failed.')).trim(),
+    exitCode: data.exit_code ?? (data.status?.id === 3 ? 0 : 1),
+    provider: 'judge0_cloud',
+  };
+}
+
+/**
+ * Free Remote Cloud Sandbox (0% Host CPU usage, zero setup, runs on external Linux container)
+ */
+async function runWithCloudSandbox({ code, language, stdin = '' }) {
+  const normLang = (language || 'javascript').toLowerCase().trim();
+  const WANDBOX_COMPILERS = {
+    c: 'gcc-head',
+    cpp: 'gcc-head',
+    'c++': 'gcc-head',
+    python: 'cpython-3.12.7',
+    py: 'cpython-3.12.7',
+    python3: 'cpython-3.12.7',
+    javascript: 'nodejs-head',
+    js: 'nodejs-head',
+  };
+
+  const compiler = WANDBOX_COMPILERS[normLang] || 'nodejs-head';
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+  const response = await fetch('https://wandbox.org/api/compile.json', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      compiler,
+      code: code || '',
+      stdin: stdin || '',
+      options: normLang === 'cpp' || normLang === 'c++' ? 'warning,gnu++20' : undefined,
+    }),
+    signal: controller.signal,
+  });
+
+  clearTimeout(timeoutId);
+
+  if (!response.ok) {
+    throw new Error(`Remote sandbox returned HTTP ${response.status}`);
+  }
+
+  const result = await response.json();
+
+  if (result.compiler_error && (!result.program_output && !result.program_message)) {
+    return {
+      success: false,
+      isCompileError: true,
+      language,
+      output: `Compilation Error:\n${result.compiler_error}`,
+      provider: 'cloud_sandbox',
+    };
+  }
+
+  const output = (result.program_output || result.program_message || result.compiler_message || '').trim();
+  return {
+    success: result.status === '0',
+    language,
+    output: output || '✓ Code executed with 0 errors.',
+    exitCode: result.status,
+    provider: 'cloud_sandbox',
+  };
+}
+
+/**
  * Main executeCode entrypoint
+ * Prioritizes remote cloud execution so host CPU usage is 0%.
+ * Automatically falls back to local compiler and AI simulation if offline.
  */
 async function executeCode({ code, language = 'javascript', stdin = '' }) {
   const startTime = Date.now();
   const normLang = (language || 'javascript').toLowerCase().trim();
 
-  // 1. Try Instant Local Compilation first
+  // 1. Primary: Run on Judge0 if API key is present in .env
+  try {
+    const judge0Res = await runWithJudge0({ code, language: normLang, stdin });
+    if (judge0Res) {
+      return {
+        ...judge0Res,
+        executionTimeMs: Date.now() - startTime,
+      };
+    }
+  } catch (judge0Err) {
+    console.warn(`[CodeExecution] Judge0 error: ${judge0Err.message}. Trying cloud sandbox...`);
+  }
+
+  // 2. Primary Free: Run on Remote Cloud Sandbox (0% Host CPU usage)
+  try {
+    const sandboxRes = await runWithCloudSandbox({ code, language: normLang, stdin });
+    if (sandboxRes) {
+      return {
+        ...sandboxRes,
+        executionTimeMs: Date.now() - startTime,
+      };
+    }
+  } catch (remoteErr) {
+    console.warn(`[CodeExecution] Cloud sandbox unavailable: ${remoteErr.message}. Falling back to local compilers...`);
+  }
+
+  // 3. Fallback: Local Machine Compilation (Only if internet/remote is down)
   try {
     const localRes = await runLocally({ code, language: normLang, stdin });
     return {
@@ -181,65 +329,10 @@ async function executeCode({ code, language = 'javascript', stdin = '' }) {
       executionTimeMs: Date.now() - startTime,
     };
   } catch (localErr) {
-    console.warn(`[CodeExecution] Local run unavailable: ${localErr.message}. Trying remote sandbox...`);
+    console.warn(`[CodeExecution] Local run unavailable: ${localErr.message}. Trying AI simulation...`);
   }
 
-  // 2. Fallback to Wandbox remote sandbox
-  const WANDBOX_COMPILERS = {
-    c: 'gcc-head',
-    cpp: 'gcc-head',
-    'c++': 'gcc-head',
-    python: 'cpython-3.12.7',
-    py: 'cpython-3.12.7',
-    javascript: 'nodejs-head',
-    js: 'nodejs-head',
-  };
-
-  const compiler = WANDBOX_COMPILERS[normLang] || 'nodejs-head';
-
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000);
-
-    const response = await fetch('https://wandbox.org/api/compile.json', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ compiler, code: code || '', stdin: stdin || '' }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    if (response.ok) {
-      const result = await response.json();
-      const elapsed = Date.now() - startTime;
-
-      if (result.compiler_error && (!result.program_output && !result.program_message)) {
-        return {
-          success: false,
-          isCompileError: true,
-          language,
-          output: `Compilation Error:\n${result.compiler_error}`,
-          executionTimeMs: elapsed,
-          provider: 'remote_compiler',
-        };
-      }
-
-      const output = (result.program_output || result.program_message || result.compiler_message || '').trim();
-      return {
-        success: result.status === '0',
-        language,
-        output: output || '✓ Code executed with 0 errors.',
-        exitCode: result.status,
-        executionTimeMs: elapsed,
-        provider: 'remote_compiler',
-      };
-    }
-  } catch (remoteErr) {
-    console.warn(`[CodeExecution] Remote sandbox unreachable: ${remoteErr.message}`);
-  }
-
-  // 3. Fallback to AI Simulation
+  // 4. Fallback: AI Simulation
   try {
     const prompt = `Simulate compiling and running this ${language} code. Output ONLY the console stdout or any compiler syntax error. No comments.
 \`\`\`${language}
