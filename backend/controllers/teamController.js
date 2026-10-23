@@ -322,18 +322,47 @@ const removeTeamMember = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Team not found.' });
     }
 
-    if (team.lead.toString() !== req.user._id.toString() && memberId !== req.user._id.toString()) {
-      return res.status(403).json({ success: false, message: 'Only the team lead can remove members, or members can leave.' });
+    const currentUserId = req.user._id.toString();
+    const isLead = team.lead.toString() === currentUserId;
+    const isSelfLeaving = memberId === currentUserId;
+
+    if (!isLead && !isSelfLeaving) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: Only the Team Lead can remove members from the team.',
+      });
     }
 
     if (team.lead.toString() === memberId && team.members.length > 1) {
-      return res.status(400).json({ success: false, message: 'Team lead cannot leave while other members exist. Transfer lead first or delete team.' });
+      return res.status(400).json({
+        success: false,
+        message: 'Team lead cannot leave while other members exist. Transfer lead first or delete team.',
+      });
     }
 
     team.members = team.members.filter((m) => m.toString() !== memberId);
     await team.save();
 
-    return res.json({ success: true, message: 'Member removed from team successfully.', team });
+    const updatedTeam = await Team.findById(id)
+      .populate('lead members tasks.assignedTo tasks.createdBy', 'name email department skills ranking rankingPoints upiId');
+
+    // Notify member if removed by lead
+    if (isLead && !isSelfLeaving) {
+      createNotification({
+        recipient: memberId,
+        sender: req.user._id,
+        type: 'SYSTEM',
+        title: 'Removed from Team',
+        message: `You were removed from team "${team.title}" by the Team Lead.`,
+        link: '/teams',
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: isSelfLeaving ? 'You left the team successfully.' : 'Member removed from team successfully.',
+      team: updatedTeam,
+    });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }

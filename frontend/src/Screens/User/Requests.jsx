@@ -32,9 +32,11 @@ import {
   RotateCw,
   Lock,
   Check,
+  ShieldCheck,
+  UserPlus,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { getMyRequests, updateRequestStatus, requestPeerInteraction, deleteRequest, assignTechnicalTest, reviewTechnicalTest, getAssessmentQuestions, aiEvaluateAssessment, markInteractionCompleted } from '../../API/peers';
+import { getMyRequests, updateRequestStatus, requestPeerInteraction, deleteRequest, assignTechnicalTest, reviewTechnicalTest, getAssessmentQuestions, aiEvaluateAssessment, markInteractionCompleted, allowCandidateToJoin } from '../../API/peers';
 import { getMe } from '../../API/auth';
 import PeerProfileModal from '../../Components/PeerProfileModal';
 
@@ -697,6 +699,21 @@ int main() {
     }
   };
 
+  const handleAllowCandidate = async (requestId, allow = true) => {
+    try {
+      const res = await allowCandidateToJoin(requestId, allow);
+      if (res?.success) {
+        setActionMsg(res.message || (allow ? 'Candidate approved and allowed to join! ✓' : 'Permission revoked.'));
+        setTimeout(() => setActionMsg(''), 4000);
+        loadRequests();
+      } else {
+        alert(res?.message || 'Could not update allowance.');
+      }
+    } catch {
+      alert('Error updating candidate admission permission.');
+    }
+  };
+
   const handleDeleteRequest = async (id, peerName = 'this request') => {
     if (!window.confirm(`Are you sure you want to delete this request from the database?`)) return;
     try {
@@ -981,8 +998,39 @@ int main() {
                       />
                     </div>
 
-                    {/* Verification Lock Status Banner */}
+                    {/* Verification & Admission Lock Status Banner */}
                     {(() => {
+                      const isLeadInviteToMe = req.requestType === 'team_invite' || (Boolean(req.team) && req.requestType !== 'team_join_request');
+                      const leadNotAllowedYet = isLeadInviteToMe && !req.leadAllowedJoin;
+
+                      if (leadNotAllowedYet && req.status === 'pending') {
+                        return (
+                          <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-400/25 text-amber-300 text-xs flex items-center gap-2.5">
+                            <Lock className="w-4 h-4 shrink-0 text-amber-400" />
+                            <div className="min-w-0">
+                              <span className="font-bold">Awaiting Team Lead Permission:</span>
+                              <span className="text-white/80 ml-1.5">
+                                You received an offer from the Team Lead, but you cannot accept until the Lead clicks "Allow to Join" or approves the offer.
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      if (isLeadInviteToMe && req.leadAllowedJoin && req.status === 'pending') {
+                        return (
+                          <div className="p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-400/25 text-emerald-300 text-xs flex items-center gap-2.5">
+                            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                            <div className="min-w-0">
+                              <span className="font-bold">Team Lead Approved:</span>
+                              <span className="text-white/80 ml-1.5">
+                                The Team Lead has granted permission for you to join! You can accept the offer below.
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      }
+
                       const testPending = req.testDetails?.isAssigned && req.testDetails?.status !== 'completed';
                       const syncPending = req.interactionRequested && !req.interactionCompleted;
                       const isLocked = testPending || syncPending;
@@ -1021,9 +1069,24 @@ int main() {
                         {req.status === 'pending' && (
                           <>
                             {(() => {
+                              const isLeadInviteToMe = req.requestType === 'team_invite' || (Boolean(req.team) && req.requestType !== 'team_join_request');
+                              const leadNotAllowedYet = isLeadInviteToMe && !req.leadAllowedJoin;
                               const testPending = req.testDetails?.isAssigned && req.testDetails?.status !== 'completed';
                               const syncPending = req.interactionRequested && !req.interactionCompleted;
-                              const isLocked = testPending || syncPending;
+                              const isLocked = leadNotAllowedYet || testPending || syncPending;
+
+                              if (leadNotAllowedYet) {
+                                return (
+                                  <button
+                                    disabled
+                                    title="The Team Lead must allow you to join or accept your offer before you can join."
+                                    className="py-1.5 px-3.5 rounded-xl bg-white/5 border border-white/10 text-white/40 font-bold text-xs flex items-center justify-center gap-1.5 cursor-not-allowed opacity-70"
+                                  >
+                                    <Lock className="w-3.5 h-3.5 text-amber-400" />
+                                    <span>Accept Offer (Awaiting Lead Approval)</span>
+                                  </button>
+                                );
+                              }
 
                               if (isLocked) {
                                 const reason = [testPending && 'Coding Test Pending', syncPending && 'Video Call Pending'].filter(Boolean).join(' & ');
@@ -1183,6 +1246,38 @@ int main() {
                       />
                     </div>
 
+                    {/* Team Lead Admission Guard Banner (for team invitations) */}
+                    {(() => {
+                      const isTeamLeadInvite = req.requestType === 'team_invite' || Boolean(req.team);
+                      if (!isTeamLeadInvite || req.status !== 'pending') return null;
+
+                      return (
+                        <div className={`p-2.5 rounded-2xl text-xs flex items-center gap-2.5 ${
+                          req.leadAllowedJoin 
+                            ? 'bg-emerald-500/10 border border-emerald-400/25 text-emerald-300' 
+                            : 'bg-amber-500/10 border border-amber-400/25 text-amber-300'
+                        }`}>
+                          {req.leadAllowedJoin ? (
+                            <>
+                              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                              <div className="min-w-0">
+                                <span className="font-bold">Candidate Allowed to Join:</span>
+                                <span className="text-white/80 ml-1.5">You approved this candidate. They can accept your offer, or you can click "Accept Offer" below.</span>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <Lock className="w-4 h-4 shrink-0 text-amber-400" />
+                              <div className="min-w-0">
+                                <span className="font-bold">Candidate Acceptance Guarded:</span>
+                                <span className="text-white/80 ml-1.5">Candidate cannot accept until you click "Allow to Join" or directly click "Accept Offer".</span>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })()}
+
                     {/* Footer Actions */}
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-white/10">
                       <button
@@ -1197,6 +1292,72 @@ int main() {
                       </button>
 
                       <div className="flex items-center justify-end gap-2 flex-wrap">
+                        {/* For team invitations sent by lead, give lead the Allow and Accept Offer buttons */}
+                        {req.status === 'pending' && (req.requestType === 'team_invite' || Boolean(req.team)) && (
+                          <>
+                            <button
+                              onClick={() => handleAllowCandidate(req.id, !req.leadAllowedJoin)}
+                              className={`py-1.5 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                req.leadAllowedJoin
+                                  ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 hover:bg-rose-500/15 hover:border-rose-500/30 hover:text-rose-300'
+                                  : 'bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-300'
+                              }`}
+                              title={req.leadAllowedJoin ? 'Click to revoke join permission' : 'Allow candidate to accept and join'}
+                            >
+                              {req.leadAllowedJoin ? (
+                                <>
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                                  <span>Allowed to Join ✓</span>
+                                </>
+                              ) : (
+                                <>
+                                  <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                                  <span>Allow to Join</span>
+                                </>
+                              )}
+                            </button>
+
+                            {(() => {
+                              const testPending = req.testDetails?.isAssigned && req.testDetails?.status !== 'completed';
+                              const syncPending = req.interactionRequested && !req.interactionCompleted;
+                              const isLocked = testPending || syncPending;
+
+                              if (isLocked) {
+                                const reason = [testPending && 'Test Pending', syncPending && 'Sync Pending'].filter(Boolean).join(' & ');
+                                return (
+                                  <button
+                                    disabled
+                                    title={`Cannot accept offer yet: ${reason}`}
+                                    className="py-1.5 px-3 rounded-xl bg-white/5 border border-white/10 text-white/40 font-bold text-xs flex items-center justify-center gap-1.5 cursor-not-allowed opacity-70"
+                                  >
+                                    <Lock className="w-3.5 h-3.5 text-amber-400" />
+                                    <span>Accept Offer (Locked)</span>
+                                  </button>
+                                );
+                              }
+
+                              return (
+                                <button
+                                  onClick={() => handleRespond(req.id, 'accepted')}
+                                  className="py-1.5 px-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                                  title="Directly accept offer and admit candidate into team"
+                                >
+                                  <UserPlus className="w-3.5 h-3.5" />
+                                  <span>Accept Offer</span>
+                                </button>
+                              );
+                            })()}
+
+                            <button
+                              onClick={() => handleRespond(req.id, 'rejected')}
+                              className="glass-btn-ghost py-1.5 px-2.5 rounded-xl text-red-300 hover:text-red-200 border-red-500/30 hover:bg-red-500/10 font-bold text-xs transition-all flex items-center justify-center gap-1 cursor-pointer"
+                              title="Reject invitation"
+                            >
+                              <XCircle className="w-3.5 h-3.5 text-red-400" /> Reject
+                            </button>
+                          </>
+                        )}
+
                         <button
                           onClick={() => handleDeleteRequest(req.id, req.name)}
                           className="glass-btn-ghost py-1.5 px-3 rounded-xl text-white/50 hover:text-red-300 hover:border-red-500/30 hover:bg-red-500/10 text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
@@ -1218,6 +1379,7 @@ int main() {
           <PeerProfileModal
             profile={viewingProfile}
             requestContext={viewingRequest}
+            isSentTab={activeTab === 'sent'}
             onClose={() => {
               setViewingProfile(null);
               setViewingRequest(null);
@@ -1225,6 +1387,7 @@ int main() {
             onAccept={(id) => handleRespond(id, 'accepted')}
             onReject={(id) => handleRespond(id, 'rejected')}
             onOpenInteraction={openInteractionModal}
+            onAllowCandidate={(id, allow) => handleAllowCandidate(id, allow)}
           />
         )}
 

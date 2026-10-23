@@ -165,6 +165,16 @@ export const markInteractionCompleted = async (requestId) => {
   return res.json();
 };
 
+export const allowCandidateToJoin = async (requestId, allow = true) => {
+  const res = await fetch(`${BASE_URL}/requests/${requestId}/allow-join`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ allow }),
+  });
+  return res.json();
+};
+
 
 
 

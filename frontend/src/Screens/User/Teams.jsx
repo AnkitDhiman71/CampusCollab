@@ -25,7 +25,7 @@ import {
   QrCode,
   IndianRupee,
 } from 'lucide-react';
-import { getTeams, createNewTeam, invitePeerToTeam, requestToJoinTeam, cancelJoinRequest } from '../../API/teams';
+import { getTeams, createNewTeam, invitePeerToTeam, requestToJoinTeam, cancelJoinRequest, removeTeamMember } from '../../API/teams';
 import { getPeers } from '../../API/peers';
 import { getMe } from '../../API/auth';
 import { sendTeamReward, getTeamRewards } from '../../API/rewards';
@@ -238,6 +238,28 @@ export function Teams() {
     } catch (err) {
       console.error('Failed to create team:', err);
       alert(err?.message || 'Failed to create team. Please try again.');
+    }
+  };
+
+  const handleRemoveMember = async (teamId, memberId, memberName) => {
+    if (!window.confirm(`Are you sure you want to remove "${memberName}" from the team? Only the Team Lead can remove team members.`)) {
+      return;
+    }
+
+    try {
+      const res = await removeTeamMember(teamId, memberId);
+      if (res?.success) {
+        setActionMsg(`"${memberName}" has been removed from the team.`);
+        setTimeout(() => setActionMsg(''), 4000);
+        fetchTeamsData();
+        if (selectedKanbanTeam && (selectedKanbanTeam._id === teamId || selectedKanbanTeam.id === teamId)) {
+          setSelectedKanbanTeam(res.team || null);
+        }
+      } else {
+        alert(res?.message || 'Failed to remove member.');
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || err.message || 'Error removing member.');
     }
   };
 
@@ -624,6 +646,20 @@ export function Teams() {
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
                             <span>{m.name || 'Member'}</span>
                             {isLead && <span className="text-[10px] text-amber-300 font-extrabold uppercase">(Lead)</span>}
+                            {/* Only Team Lead can delete/remove any person from the team */}
+                            {team.isLead && !isLead && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRemoveMember(team._id || team.id, mId, m.name || 'Member');
+                                }}
+                                className="ml-1 p-0.5 rounded-md hover:bg-rose-500/30 text-white/50 hover:text-rose-300 transition-colors cursor-pointer"
+                                title={`Remove ${m.name || 'Member'} from team (Lead only)`}
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            )}
                           </div>
                         );
                       })}

@@ -37,6 +37,8 @@ export function PeerProfileModal({
   onReject,
   onOpenSendRequest,
   onOpenInteraction,
+  isSentTab = false,
+  onAllowCandidate,
 }) {
   if (!profile) return null;
 
@@ -434,10 +436,41 @@ export function PeerProfileModal({
                     <Video className="w-3.5 h-3.5" /> Schedule Sync / Call
                   </button>
                 )}
+                {isSentTab && onAllowCandidate && (requestContext?.requestType === 'team_invite' || Boolean(requestContext?.team)) && (
+                  <button
+                    onClick={() => {
+                      onAllowCandidate(requestContext.id, !requestContext.leadAllowedJoin);
+                      onClose();
+                    }}
+                    className={`flex-1 sm:flex-none py-2 px-3.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      requestContext.leadAllowedJoin
+                        ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-300'
+                        : 'bg-amber-500/20 border border-amber-400/40 text-amber-300'
+                    }`}
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>{requestContext.leadAllowedJoin ? 'Allowed to Join ✓' : 'Allow Candidate to Join'}</span>
+                  </button>
+                )}
                 {(() => {
+                  const isLeadInviteToMe = (requestContext?.requestType === 'team_invite' || (Boolean(requestContext?.team) && requestContext?.requestType !== 'team_join_request')) && !isSentTab;
+                  const leadNotAllowedYet = isLeadInviteToMe && !requestContext?.leadAllowedJoin;
                   const testPending = requestContext?.testDetails?.isAssigned && requestContext?.testDetails?.status !== 'completed';
                   const syncPending = requestContext?.interactionRequested && !requestContext?.interactionCompleted;
-                  const isLocked = testPending || syncPending;
+                  const isLocked = leadNotAllowedYet || testPending || syncPending;
+
+                  if (leadNotAllowedYet) {
+                    return (
+                      <button
+                        disabled
+                        title="The Team Lead has not yet approved or allowed you to join."
+                        className="flex-1 sm:flex-none py-2 px-4 rounded-xl bg-white/5 border border-white/15 text-white/40 font-bold text-xs flex items-center justify-center gap-1.5 cursor-not-allowed opacity-70"
+                      >
+                        <Lock className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Accept Locked (Awaiting Lead Approval)</span>
+                      </button>
+                    );
+                  }
 
                   if (isLocked) {
                     const reason = [testPending && 'Coding Test Pending', syncPending && 'Video Call Pending'].filter(Boolean).join(' & ');
@@ -461,7 +494,7 @@ export function PeerProfileModal({
                       }}
                       className="flex-1 sm:flex-none py-2 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-md shadow-emerald-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5" /> {requestContext.team ? 'Accept & Join Team' : 'Accept Connection'}
+                      <CheckCircle2 className="w-3.5 h-3.5" /> {isSentTab ? 'Accept Offer & Admit' : requestContext.team ? 'Accept & Join Team' : 'Accept Connection'}
                     </button>
                   );
                 })()}

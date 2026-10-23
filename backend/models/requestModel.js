@@ -82,6 +82,13 @@ const requestSchema = new mongoose.Schema(
       default: '',
       trim: true,
     },
+    leadAllowedJoin: {
+      type: Boolean,
+      default: false,
+    },
+    leadAllowedJoinAt: {
+      type: Date,
+    },
     testDetails: {
       isAssigned: {
         type: Boolean,

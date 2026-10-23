@@ -17,6 +17,7 @@ const {
   aiEvaluateAssessment,
   runCodeSnippet,
   markInteractionCompleted,
+  allowCandidateToJoin,
 } = require('../controllers/peerController');
 const { getAllQuestions } = require('../controllers/questionController');
 const { protect } = require('../middlewares/authMiddleware');
@@ -33,6 +34,7 @@ router.put('/requests/:id', protect, validate(updateRequestSchema), updateReques
 router.delete('/requests/:id', protect, deleteRequest);
 router.post('/requests/:id/interaction', protect, requestInteraction);
 router.patch('/requests/:id/interaction/complete', protect, markInteractionCompleted);
+router.patch('/requests/:id/allow-join', protect, allowCandidateToJoin);
 
 // Assessment Question presets from DB
 router.get('/questions', protect, getAllQuestions);
