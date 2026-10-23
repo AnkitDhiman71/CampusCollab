@@ -24,6 +24,9 @@ import {
   Gift,
   QrCode,
   IndianRupee,
+  Copy,
+  Smartphone,
+  Sparkles,
 } from 'lucide-react';
 import { getTeams, createNewTeam, invitePeerToTeam, requestToJoinTeam, cancelJoinRequest, removeTeamMember } from '../../API/teams';
 import { getPeers } from '../../API/peers';
@@ -106,6 +109,17 @@ export function Teams() {
   const [rewardSuccessMsg, setRewardSuccessMsg] = useState('');
   const [teamRewards, setTeamRewards] = useState([]);
   const [showRewardHistory, setShowRewardHistory] = useState(false);
+  const [rewardPaymentTab, setRewardPaymentTab] = useState('apps'); // 'apps' | 'qr'
+  const [copiedUpi, setCopiedUpi] = useState(false);
+
+  const handleCopyUpi = (id) => {
+    if (!id) return;
+    if (navigator?.clipboard) {
+      navigator.clipboard.writeText(id);
+      setCopiedUpi(true);
+      setTimeout(() => setCopiedUpi(false), 2500);
+    }
+  };
 
   const openRewardModal = async (team) => {
     setRewardModalTeam(team);
@@ -115,6 +129,8 @@ export function Teams() {
     setRewardReason('Outstanding milestone contribution');
     setRewardUtr('');
     setShowRewardHistory(false);
+    setRewardPaymentTab('apps');
+    setCopiedUpi(false);
 
     const leadId = (team.lead?._id || team.lead)?.toString();
     const members = getUniqueTeamMembers(team).filter(
@@ -1489,33 +1505,147 @@ export function Teams() {
                             />
                           </div>
 
-                          {/* 4. Live Scannable Dynamic UPI QR Code */}
-                          {hasUpi && qrCodeUrl && (
-                            <div className="p-4 rounded-3xl bg-slate-950/70 border border-amber-400/30 text-center space-y-3">
-                              <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-amber-300">
-                                <QrCode className="w-4 h-4" />
-                                <span>Scan to Pay ₹{numericAmount} with any UPI App</span>
+                          {/* 4. Payment Methods: 1-Tap UPI Apps & Dynamic QR Code */}
+                          {hasUpi && (
+                            <div className="space-y-3 p-4 rounded-3xl bg-slate-950/80 border border-amber-400/30">
+                              {/* Payment Mode Switcher Tabs */}
+                              <div className="flex p-1 rounded-2xl bg-white/5 border border-white/10 gap-1 text-xs">
+                                <button
+                                  type="button"
+                                  onClick={() => setRewardPaymentTab('apps')}
+                                  className={`flex-1 py-2 px-3 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                                    rewardPaymentTab === 'apps'
+                                      ? 'bg-amber-400 text-slate-950 shadow-md font-black'
+                                      : 'text-white/70 hover:text-white'
+                                  }`}
+                                >
+                                  <Smartphone className="w-3.5 h-3.5" />
+                                  <span>1-Tap UPI Apps</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setRewardPaymentTab('qr')}
+                                  className={`flex-1 py-2 px-3 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                                    rewardPaymentTab === 'qr'
+                                      ? 'bg-amber-400 text-slate-950 shadow-md font-black'
+                                      : 'text-white/70 hover:text-white'
+                                  }`}
+                                >
+                                  <QrCode className="w-3.5 h-3.5" />
+                                  <span>Scan QR Code</span>
+                                </button>
                               </div>
 
-                              <div className="bg-white p-3.5 rounded-2xl inline-block shadow-xl">
-                                <img
-                                  src={qrCodeUrl}
-                                  alt="Dynamic UPI QR Code"
-                                  className="w-44 h-44 object-contain mx-auto"
-                                />
-                              </div>
+                              {/* TAB 1: 1-Tap Direct UPI App Buttons */}
+                              {rewardPaymentTab === 'apps' && (
+                                <div className="space-y-2.5 animate-in fade-in duration-200">
+                                  <div className="flex items-center justify-between text-[11px] text-white/70">
+                                    <span className="font-semibold flex items-center gap-1">
+                                      <Sparkles className="w-3 h-3 text-amber-400" />
+                                      Tap any app to pay ₹{numericAmount} directly:
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleCopyUpi(upiId)}
+                                      className="text-amber-300 hover:text-amber-200 font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                                      title="Copy teammate UPI ID"
+                                    >
+                                      <Copy className="w-3 h-3" />
+                                      <span>{copiedUpi ? 'Copied! ✓' : 'Copy UPI ID'}</span>
+                                    </button>
+                                  </div>
 
-                              <p className="text-[11px] text-white/70">
-                                Scan using <strong>Google Pay</strong>, <strong>PhonePe</strong>, or <strong>Paytm</strong>. The amount and recipient are pre-filled automatically!
-                              </p>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {/* Google Pay Button */}
+                                    <a
+                                      href={`tez://upi/pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(memberName)}&am=${encodeURIComponent(numericAmount)}&cu=INR&tn=${encodeURIComponent(rewardReason.trim() || 'CampusCollab Milestone Reward')}`}
+                                      className="p-3 rounded-2xl bg-white hover:bg-slate-100 text-slate-900 font-extrabold text-xs flex items-center justify-between gap-2 shadow-md transition-all group border border-slate-200"
+                                      title="Open Google Pay"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center font-black text-xs">
+                                          G
+                                        </div>
+                                        <span className="font-bold text-slate-900">Google Pay</span>
+                                      </div>
+                                      <span className="text-[10px] uppercase font-black text-blue-600 px-1.5 py-0.5 rounded bg-blue-50 border border-blue-200">
+                                        Pay ₹{numericAmount}
+                                      </span>
+                                    </a>
 
-                              {/* Mobile 1-Tap Deep Link */}
-                              <a
-                                href={upiUri}
-                                className="sm:hidden block w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs text-center shadow-lg transition-all"
-                              >
-                                Pay via UPI App (GPay / PhonePe) &rarr;
-                              </a>
+                                    {/* PhonePe Button */}
+                                    <a
+                                      href={`phonepe://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(memberName)}&am=${encodeURIComponent(numericAmount)}&cu=INR&tn=${encodeURIComponent(rewardReason.trim() || 'CampusCollab Milestone Reward')}`}
+                                      className="p-3 rounded-2xl bg-[#5f259f] hover:bg-[#521e8d] text-white font-extrabold text-xs flex items-center justify-between gap-2 shadow-md shadow-purple-900/30 transition-all border border-purple-400/30"
+                                      title="Open PhonePe"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-6 h-6 rounded-full bg-white text-[#5f259f] flex items-center justify-center font-black text-xs">
+                                          पे
+                                        </div>
+                                        <span className="font-bold text-white">PhonePe</span>
+                                      </div>
+                                      <span className="text-[10px] uppercase font-black text-purple-200 px-1.5 py-0.5 rounded bg-purple-900/50 border border-purple-400/40">
+                                        Pay ₹{numericAmount}
+                                      </span>
+                                    </a>
+
+                                    {/* Paytm Button */}
+                                    <a
+                                      href={`paytmmp://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(memberName)}&am=${encodeURIComponent(numericAmount)}&cu=INR&tn=${encodeURIComponent(rewardReason.trim() || 'CampusCollab Milestone Reward')}`}
+                                      className="p-3 rounded-2xl bg-[#002e6e] hover:bg-[#002456] text-white font-extrabold text-xs flex items-center justify-between gap-2 shadow-md transition-all border border-sky-400/30"
+                                      title="Open Paytm"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-6 h-6 rounded-full bg-[#00b9f5] text-white flex items-center justify-center font-black text-[10px]">
+                                          P
+                                        </div>
+                                        <span className="font-bold text-sky-200">Paytm UPI</span>
+                                      </div>
+                                      <span className="text-[10px] uppercase font-black text-sky-300 px-1.5 py-0.5 rounded bg-sky-950 border border-sky-500/40">
+                                        Pay ₹{numericAmount}
+                                      </span>
+                                    </a>
+
+                                    {/* Any Default UPI App / BHIM */}
+                                    <a
+                                      href={upiUri}
+                                      className="p-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs flex items-center justify-between gap-2 shadow-md shadow-emerald-900/30 transition-all border border-emerald-400/30"
+                                      title="Open Default UPI App"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-6 h-6 rounded-full bg-white text-emerald-700 flex items-center justify-center font-black text-xs">
+                                          ₹
+                                        </div>
+                                        <span className="font-bold text-white">Any UPI App</span>
+                                      </div>
+                                      <span className="text-[10px] uppercase font-black text-emerald-100 px-1.5 py-0.5 rounded bg-emerald-900/40 border border-emerald-400/40">
+                                        Direct
+                                      </span>
+                                    </a>
+                                  </div>
+
+                                  <p className="text-[10px] text-white/50 text-center pt-1">
+                                    💡 <em>Tapping directly opens your chosen payment app with recipient & ₹{numericAmount} pre-filled.</em>
+                                  </p>
+                                </div>
+                              )}
+
+                              {/* TAB 2: Dynamic QR Code */}
+                              {rewardPaymentTab === 'qr' && (
+                                <div className="text-center space-y-3 animate-in fade-in duration-200">
+                                  <div className="bg-white p-3.5 rounded-2xl inline-block shadow-xl">
+                                    <img
+                                      src={qrCodeUrl}
+                                      alt="Dynamic UPI QR Code"
+                                      className="w-44 h-44 object-contain mx-auto"
+                                    />
+                                  </div>
+                                  <p className="text-[11px] text-white/70">
+                                    Scan using any UPI App on your phone to pay <strong>₹{numericAmount}</strong> to <strong>{memberName}</strong>.
+                                  </p>
+                                </div>
+                              )}
                             </div>
                           )}
 
