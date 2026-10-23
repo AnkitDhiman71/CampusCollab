@@ -34,6 +34,7 @@ import {
   Check,
   ShieldCheck,
   UserPlus,
+  Plus,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { getMyRequests, updateRequestStatus, requestPeerInteraction, deleteRequest, assignTechnicalTest, reviewTechnicalTest, getAssessmentQuestions, aiEvaluateAssessment, markInteractionCompleted, allowCandidateToJoin } from '../../API/peers';
@@ -1000,31 +1001,28 @@ int main() {
 
                     {/* Verification & Admission Lock Status Banner */}
                     {(() => {
-                      const isLeadInviteToMe = req.requestType === 'team_invite' || (Boolean(req.team) && req.requestType !== 'team_join_request');
-                      const leadNotAllowedYet = isLeadInviteToMe && !req.leadAllowedJoin;
-
-                      if (leadNotAllowedYet && req.status === 'pending') {
+                      if (!req.leadAllowedJoin && req.status === 'pending') {
                         return (
                           <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-400/25 text-amber-300 text-xs flex items-center gap-2.5">
                             <Lock className="w-4 h-4 shrink-0 text-amber-400" />
                             <div className="min-w-0">
-                              <span className="font-bold">Awaiting Team Lead Permission:</span>
+                              <span className="font-bold">Awaiting Sender / Team Lead Approval:</span>
                               <span className="text-white/80 ml-1.5">
-                                You received an offer from the Team Lead, but you cannot accept until the Lead clicks "Allow to Join" or approves the offer.
+                                You received an offer from {req.name}, but you cannot accept until they click "Allow to Join" or approve your offer.
                               </span>
                             </div>
                           </div>
                         );
                       }
 
-                      if (isLeadInviteToMe && req.leadAllowedJoin && req.status === 'pending') {
+                      if (req.leadAllowedJoin && req.status === 'pending') {
                         return (
                           <div className="p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-400/25 text-emerald-300 text-xs flex items-center gap-2.5">
                             <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
                             <div className="min-w-0">
-                              <span className="font-bold">Team Lead Approved:</span>
+                              <span className="font-bold">Sender / Lead Approved:</span>
                               <span className="text-white/80 ml-1.5">
-                                The Team Lead has granted permission for you to join! You can accept the offer below.
+                                Permission has been granted! You can now accept this offer below.
                               </span>
                             </div>
                           </div>
@@ -1069,8 +1067,7 @@ int main() {
                         {req.status === 'pending' && (
                           <>
                             {(() => {
-                              const isLeadInviteToMe = req.requestType === 'team_invite' || (Boolean(req.team) && req.requestType !== 'team_join_request');
-                              const leadNotAllowedYet = isLeadInviteToMe && !req.leadAllowedJoin;
+                              const leadNotAllowedYet = !req.leadAllowedJoin;
                               const testPending = req.testDetails?.isAssigned && req.testDetails?.status !== 'completed';
                               const syncPending = req.interactionRequested && !req.interactionCompleted;
                               const isLocked = leadNotAllowedYet || testPending || syncPending;
@@ -1079,11 +1076,11 @@ int main() {
                                 return (
                                   <button
                                     disabled
-                                    title="The Team Lead must allow you to join or accept your offer before you can join."
+                                    title="The request sender / Team Lead must allow you to join or accept your offer before you can accept."
                                     className="py-1.5 px-3.5 rounded-xl bg-white/5 border border-white/10 text-white/40 font-bold text-xs flex items-center justify-center gap-1.5 cursor-not-allowed opacity-70"
                                   >
                                     <Lock className="w-3.5 h-3.5 text-amber-400" />
-                                    <span>Accept Offer (Awaiting Lead Approval)</span>
+                                    <span>Accept Offer (Awaiting Approval)</span>
                                   </button>
                                 );
                               }
@@ -1246,10 +1243,9 @@ int main() {
                       />
                     </div>
 
-                    {/* Team Lead Admission Guard Banner (for team invitations) */}
+                    {/* Team Lead / Sender Admission Guard Banner */}
                     {(() => {
-                      const isTeamLeadInvite = req.requestType === 'team_invite' || Boolean(req.team);
-                      if (!isTeamLeadInvite || req.status !== 'pending') return null;
+                      if (req.status !== 'pending') return null;
 
                       return (
                         <div className={`p-2.5 rounded-2xl text-xs flex items-center gap-2.5 ${
@@ -1292,8 +1288,8 @@ int main() {
                       </button>
 
                       <div className="flex items-center justify-end gap-2 flex-wrap">
-                        {/* For team invitations sent by lead, give lead the Allow and Accept Offer buttons */}
-                        {req.status === 'pending' && (req.requestType === 'team_invite' || Boolean(req.team)) && (
+                        {/* For sent requests, sender can Allow to Join or Cancel */}
+                        {req.status === 'pending' && (
                           <>
                             <button
                               onClick={() => handleAllowCandidate(req.id, !req.leadAllowedJoin)}
@@ -1317,43 +1313,12 @@ int main() {
                               )}
                             </button>
 
-                            {(() => {
-                              const testPending = req.testDetails?.isAssigned && req.testDetails?.status !== 'completed';
-                              const syncPending = req.interactionRequested && !req.interactionCompleted;
-                              const isLocked = testPending || syncPending;
-
-                              if (isLocked) {
-                                const reason = [testPending && 'Test Pending', syncPending && 'Sync Pending'].filter(Boolean).join(' & ');
-                                return (
-                                  <button
-                                    disabled
-                                    title={`Cannot accept offer yet: ${reason}`}
-                                    className="py-1.5 px-3 rounded-xl bg-white/5 border border-white/10 text-white/40 font-bold text-xs flex items-center justify-center gap-1.5 cursor-not-allowed opacity-70"
-                                  >
-                                    <Lock className="w-3.5 h-3.5 text-amber-400" />
-                                    <span>Accept Offer (Locked)</span>
-                                  </button>
-                                );
-                              }
-
-                              return (
-                                <button
-                                  onClick={() => handleRespond(req.id, 'accepted')}
-                                  className="py-1.5 px-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                                  title="Directly accept offer and admit candidate into team"
-                                >
-                                  <UserPlus className="w-3.5 h-3.5" />
-                                  <span>Accept Offer</span>
-                                </button>
-                              );
-                            })()}
-
                             <button
                               onClick={() => handleRespond(req.id, 'rejected')}
                               className="glass-btn-ghost py-1.5 px-2.5 rounded-xl text-red-300 hover:text-red-200 border-red-500/30 hover:bg-red-500/10 font-bold text-xs transition-all flex items-center justify-center gap-1 cursor-pointer"
-                              title="Reject invitation"
+                              title="Cancel invitation"
                             >
-                              <XCircle className="w-3.5 h-3.5 text-red-400" /> Reject
+                              <XCircle className="w-3.5 h-3.5 text-red-400" /> Cancel
                             </button>
                           </>
                         )}

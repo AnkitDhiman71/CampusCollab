@@ -436,7 +436,7 @@ export function PeerProfileModal({
                     <Video className="w-3.5 h-3.5" /> Schedule Sync / Call
                   </button>
                 )}
-                {isSentTab && onAllowCandidate && (requestContext?.requestType === 'team_invite' || Boolean(requestContext?.team)) && (
+                {isSentTab && onAllowCandidate && (
                   <button
                     onClick={() => {
                       onAllowCandidate(requestContext.id, !requestContext.leadAllowedJoin);
@@ -452,9 +452,8 @@ export function PeerProfileModal({
                     <span>{requestContext.leadAllowedJoin ? 'Allowed to Join ✓' : 'Allow Candidate to Join'}</span>
                   </button>
                 )}
-                {(() => {
-                  const isLeadInviteToMe = (requestContext?.requestType === 'team_invite' || (Boolean(requestContext?.team) && requestContext?.requestType !== 'team_join_request')) && !isSentTab;
-                  const leadNotAllowedYet = isLeadInviteToMe && !requestContext?.leadAllowedJoin;
+                {!isSentTab && (() => {
+                  const leadNotAllowedYet = !requestContext?.leadAllowedJoin;
                   const testPending = requestContext?.testDetails?.isAssigned && requestContext?.testDetails?.status !== 'completed';
                   const syncPending = requestContext?.interactionRequested && !requestContext?.interactionCompleted;
                   const isLocked = leadNotAllowedYet || testPending || syncPending;
@@ -463,11 +462,11 @@ export function PeerProfileModal({
                     return (
                       <button
                         disabled
-                        title="The Team Lead has not yet approved or allowed you to join."
+                        title="The request sender / Team Lead has not yet approved or allowed you to join."
                         className="flex-1 sm:flex-none py-2 px-4 rounded-xl bg-white/5 border border-white/15 text-white/40 font-bold text-xs flex items-center justify-center gap-1.5 cursor-not-allowed opacity-70"
                       >
                         <Lock className="w-3.5 h-3.5 text-amber-400" />
-                        <span>Accept Locked (Awaiting Lead Approval)</span>
+                        <span>Accept Locked (Awaiting Approval)</span>
                       </button>
                     );
                   }
@@ -494,7 +493,7 @@ export function PeerProfileModal({
                       }}
                       className="flex-1 sm:flex-none py-2 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-md shadow-emerald-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5" /> {isSentTab ? 'Accept Offer & Admit' : requestContext.team ? 'Accept & Join Team' : 'Accept Connection'}
+                      <CheckCircle2 className="w-3.5 h-3.5" /> {requestContext.team ? 'Accept & Join Team' : 'Accept Connection'}
                     </button>
                   );
                 })()}
@@ -505,7 +504,7 @@ export function PeerProfileModal({
                   }}
                   className="glass-btn-ghost flex-1 sm:flex-none py-2 px-4 rounded-xl text-white font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
-                  <XCircle className="w-3.5 h-3.5 text-white/60" /> Reject
+                  <XCircle className="w-3.5 h-3.5 text-white/60" /> {isSentTab ? 'Cancel Request' : 'Reject'}
                 </button>
               </>
             ) : onOpenSendRequest ? (

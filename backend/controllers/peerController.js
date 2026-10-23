@@ -334,15 +334,12 @@ const updateRequestStatus = async (req, res) => {
       const isSender = request.sender.toString() === req.user._id.toString();
       const isRecipient = request.recipient.toString() === req.user._id.toString();
 
-      // Check if this request is a Team Lead initiated offer/invite to a candidate
-      const isLeadInviteToCandidate = request.requestType === 'team_invite' || (Boolean(request.team) && request.requestType !== 'team_join_request');
-
-      // Candidate (recipient) cannot accept until unless the lead allows them to join or the lead accepts
-      if (isRecipient && isLeadInviteToCandidate && !isSender) {
+      // Recipient cannot accept until the request sender or team lead explicitly allows them, or the sender accepts directly
+      if (isRecipient && !isSender) {
         if (!request.leadAllowedJoin) {
           return res.status(403).json({
             success: false,
-            message: 'Cannot accept offer: The Team Lead has not yet approved or allowed you to join. Please wait for the Lead to allow you or click Accept Offer.',
+            message: 'Cannot accept offer: The request sender / Team Lead has not yet approved or allowed you to join. Please wait for them to allow you or click Accept Offer.',
           });
         }
       }
@@ -1097,13 +1094,11 @@ const allowCandidateToJoin = async (req, res) => {
     const isSender = request.sender.toString() === req.user._id.toString();
     const isRecipient = request.recipient.toString() === req.user._id.toString();
 
-    // Only the lead/evaluator who sent the invite or received a join request can allow
-    const isLead = (request.requestType === 'team_join_request' && isRecipient) ||
-                   (request.requestType === 'team_invite' && isSender) ||
-                   (isSender && Boolean(request.team));
+    // The sender who sent the invite or the lead who received a join request can allow
+    const canAllow = isSender || (request.requestType === 'team_join_request' && isRecipient);
 
-    if (!isLead) {
-      return res.status(403).json({ success: false, message: 'Only the Team Lead can allow a candidate to join.' });
+    if (!canAllow) {
+      return res.status(403).json({ success: false, message: 'Only the request sender or Team Lead can allow a candidate to join.' });
     }
 
     request.leadAllowedJoin = Boolean(allow);
@@ -1113,13 +1108,13 @@ const allowCandidateToJoin = async (req, res) => {
     const candidateId = request.requestType === 'team_join_request' ? request.sender : request.recipient;
 
     if (allow && candidateId) {
-      const teamTitle = request.team?.title || 'the project team';
+      const teamTitle = request.team?.title || 'the collaboration project';
       createNotification({
         recipient: candidateId,
         sender: req.user._id,
         type: 'TEAM_ACCEPTED',
-        title: 'Offer Approved by Team Lead!',
-        message: `The Team Lead has approved you to join "${teamTitle}"! You can now accept the offer on your Requests page.`,
+        title: 'Offer Approved by Sender!',
+        message: `${req.user.name || 'The Team Lead'} has approved you! You can now accept the offer on your Requests page.`,
         link: '/requests',
       });
     }

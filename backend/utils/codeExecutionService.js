@@ -181,8 +181,12 @@ async function runWithJudge0({ code, language, stdin = '' }) {
     python: 71,
     py: 71,
     python3: 71,
+    java: 62,
     javascript: 63,
     js: 63,
+    node: 63,
+    typescript: 74,
+    ts: 74,
   };
 
   const normLang = (language || '').toLowerCase().trim();
@@ -237,11 +241,21 @@ async function runWithCloudSandbox({ code, language, stdin = '' }) {
     python: 'cpython-3.12.7',
     py: 'cpython-3.12.7',
     python3: 'cpython-3.12.7',
-    javascript: 'nodejs-head',
-    js: 'nodejs-head',
+    java: 'openjdk-jdk-22+36',
+    javascript: 'nodejs-20.17.0',
+    js: 'nodejs-20.17.0',
+    node: 'nodejs-20.17.0',
+    typescript: 'typescript-5.5.4',
+    ts: 'typescript-5.5.4',
   };
 
-  const compiler = WANDBOX_COMPILERS[normLang] || 'nodejs-head';
+  const compiler = WANDBOX_COMPILERS[normLang] || 'nodejs-20.17.0';
+
+  // Normalize Java code: allow candidates to write "public class Main" or any class name
+  let processedCode = code || '';
+  if (normLang === 'java') {
+    processedCode = processedCode.replace(/public\s+class\s+([A-Za-z0-9_]+)/g, 'class $1');
+  }
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 12000);
@@ -251,7 +265,7 @@ async function runWithCloudSandbox({ code, language, stdin = '' }) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       compiler,
-      code: code || '',
+      code: processedCode,
       stdin: stdin || '',
       options: normLang === 'cpp' || normLang === 'c++' ? 'warning,gnu++20' : undefined,
     }),
