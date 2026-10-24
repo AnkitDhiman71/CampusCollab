@@ -207,26 +207,26 @@ export function NotificationDrawer() {
 
       {/* Dropdown / Drawer Popover */}
       {isOpen && (
-        <div className="absolute right-0 mt-3 w-[calc(100vw-24px)] sm:w-96 max-w-sm rounded-3xl glass-card border border-slate-200/80 dark:border-white/10 shadow-2xl backdrop-blur-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="fixed sm:absolute left-3 right-3 sm:left-auto sm:right-0 top-16 sm:top-auto sm:mt-3 w-auto sm:w-96 sm:max-w-sm rounded-3xl glass-card border border-slate-200/80 dark:border-white/10 shadow-2xl backdrop-blur-2xl z-[60] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
           {/* Header */}
-          <div className="p-4 border-b border-slate-200/60 dark:border-white/10 flex items-center justify-between bg-slate-50/50 dark:bg-white/[0.02]">
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-sm text-slate-900 dark:text-white">
+          <div className="p-3.5 sm:p-4 border-b border-slate-200/60 dark:border-white/10 flex items-center justify-between bg-slate-50/50 dark:bg-white/[0.02]">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="font-bold text-sm text-slate-900 dark:text-white shrink-0">
                 Notifications
               </span>
               {unreadCount > 0 && (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-500/10 text-blue-600 dark:text-sky-400 border border-blue-500/20">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-500/10 text-blue-600 dark:text-sky-400 border border-blue-500/20 shrink-0">
                   {unreadCount} new
                 </span>
               )}
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 shrink-0">
               {unreadCount > 0 && (
                 <button
                   onClick={handleMarkAllRead}
                   disabled={isMarkingAll}
-                  className="px-2 py-1 rounded-xl text-[11px] font-semibold text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-sky-400 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors flex items-center gap-1 cursor-pointer"
+                  className="px-2 py-1 rounded-xl text-[11px] font-semibold text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-sky-400 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors flex items-center gap-1 cursor-pointer shrink-0"
                   title="Mark all as read"
                 >
                   <CheckCheck className="w-3.5 h-3.5" />
@@ -235,7 +235,7 @@ export function NotificationDrawer() {
               )}
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-1 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                className="p-1 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer shrink-0"
                 aria-label="Close notifications drawer"
               >
                 <X className="w-4 h-4" />
@@ -244,7 +244,7 @@ export function NotificationDrawer() {
           </div>
 
           {/* List Content */}
-          <div className="max-h-[22rem] overflow-y-auto divide-y divide-slate-100 dark:divide-white/5 scrollbar-thin">
+          <div className="max-h-[min(24rem,calc(100vh-10rem))] overflow-y-auto divide-y divide-slate-100 dark:divide-white/5 scrollbar-thin">
             {loading && notifications.length === 0 ? (
               <div className="py-12 flex flex-col items-center justify-center text-slate-400 gap-2">
                 <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
@@ -322,7 +322,7 @@ export function NotificationDrawer() {
                     {/* Delete Action button */}
                     <button
                       onClick={(e) => handleDelete(e, notif._id)}
-                      className="opacity-0 group-hover:opacity-100 p-1 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-all cursor-pointer shrink-0"
+                      className="opacity-70 sm:opacity-0 sm:group-hover:opacity-100 p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-all cursor-pointer shrink-0"
                       title="Dismiss notification"
                       aria-label="Dismiss notification"
                     >

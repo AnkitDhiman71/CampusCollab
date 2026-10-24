@@ -417,8 +417,12 @@ export function Teams() {
     });
   };
 
-  // Filter peers in the invite modal
+  // Filter peers in the invite modal (hide peers who are already in this specific team)
   const filteredPeers = peers.filter((p) => {
+    const peerId = p._id || p.id;
+    if (inviteModalTeam && isMemberOfTeam(inviteModalTeam, peerId)) {
+      return false;
+    }
     if (!peerSearch.trim()) return true;
     const query = peerSearch.toLowerCase();
     const matchName = p.name?.toLowerCase().includes(query);
@@ -723,50 +727,52 @@ export function Teams() {
                 </div>
 
                 {/* Footer Controls: GitHub link and Membership Actions */}
-                <div className="pt-3 border-t border-white/10 flex justify-between items-center gap-3">
-                  {team.githubUrl ? (
-                    <a
-                      href={team.githubUrl.startsWith('http') ? team.githubUrl : `https://${team.githubUrl}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-amber-300 hover:text-amber-200 font-semibold flex items-center gap-1.5 transition-colors"
-                      title="Open GitHub Repository"
-                    >
-                      <FolderGit2 className="w-3.5 h-3.5" />
-                      <span>GitHub Repo &rarr;</span>
-                    </a>
-                  ) : (
-                    <span className="text-xs text-white/50 font-medium flex items-center gap-1">
-                      <FolderGit2 className="w-3.5 h-3.5" /> No Repository
-                    </span>
-                  )}
-
+                <div className="pt-3 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
+                    {team.githubUrl ? (
+                      <a
+                        href={team.githubUrl.startsWith('http') ? team.githubUrl : `https://${team.githubUrl}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-amber-300 hover:text-amber-200 font-semibold flex items-center gap-1.5 transition-colors"
+                        title="Open GitHub Repository"
+                      >
+                        <FolderGit2 className="w-3.5 h-3.5 shrink-0" />
+                        <span>GitHub Repo &rarr;</span>
+                      </a>
+                    ) : (
+                      <span className="text-xs text-white/50 font-medium flex items-center gap-1">
+                        <FolderGit2 className="w-3.5 h-3.5 shrink-0" /> No Repository
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
                     <button
                       onClick={() => openTeamWorkspace(team, 'kanban')}
-                      className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-blue-600/10 hover:bg-blue-600 text-blue-600 hover:text-white dark:text-sky-400 dark:hover:text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                      className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-blue-600/10 hover:bg-blue-600 text-blue-600 hover:text-white dark:text-sky-400 dark:hover:text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm shrink-0"
                       title="Open Team Project Kanban Board"
                     >
-                      <Kanban className="w-3.5 h-3.5" />
+                      <Kanban className="w-3.5 h-3.5 shrink-0" />
                       <span>Kanban ({team.tasks?.length || 0})</span>
                     </button>
 
                     {team.isLead || team.isMember ? (
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 shrink-0">
                         <button
                           onClick={() => openTeamWorkspace(team, 'chat')}
                           className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-600/10 hover:bg-emerald-600 text-emerald-600 hover:text-white dark:text-emerald-400 dark:hover:text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
                           title="Open Team Live Chat Workspace"
                         >
-                          <MessageSquare className="w-3.5 h-3.5" />
+                          <MessageSquare className="w-3.5 h-3.5 shrink-0" />
                           <span>Chat</span>
                         </button>
                         <Link
                           to={`/chat?teamId=${team._id || team.id}`}
-                          className="p-1.5 rounded-xl glass-tile text-emerald-400 hover:text-white hover:bg-emerald-600/20 transition-all cursor-pointer"
+                          className="p-1.5 rounded-xl glass-tile text-emerald-400 hover:text-white hover:bg-emerald-600/20 transition-all cursor-pointer shrink-0"
                           title="Open Dedicated Fullscreen Chat Page"
                         >
-                          <ExternalLink className="w-3.5 h-3.5" />
+                          <ExternalLink className="w-3.5 h-3.5 shrink-0" />
                         </Link>
                       </div>
                     ) : (
@@ -780,10 +786,10 @@ export function Teams() {
                           }
                           setTimeout(() => setActionMsg(''), 6000);
                         }}
-                        className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-500/10 hover:bg-slate-500/20 text-slate-400 hover:text-slate-200 dark:text-slate-400 font-semibold text-xs flex items-center gap-1.5 border border-white/5 hover:border-amber-400/30 transition-all cursor-pointer group shadow-sm"
+                        className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-500/10 hover:bg-slate-500/20 text-slate-400 hover:text-slate-200 dark:text-slate-400 font-semibold text-xs flex items-center gap-1.5 border border-white/5 hover:border-amber-400/30 transition-all cursor-pointer group shadow-sm shrink-0"
                         title={team.hasRequested ? "Join request pending — Chat unlocks once accepted" : "Members only — Request to join to unlock live chat"}
                       >
-                        <Lock className="w-3.5 h-3.5 text-amber-400/80 group-hover:text-amber-400 transition-colors" />
+                        <Lock className="w-3.5 h-3.5 text-amber-400/80 group-hover:text-amber-400 transition-colors shrink-0" />
                         <span>Chat</span>
                         <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-white/5 text-amber-300/80 font-bold border border-white/10 hidden sm:inline-block">
                           Members
@@ -795,10 +801,10 @@ export function Teams() {
                     {team.isLead && (
                       <button
                         onClick={() => openRewardModal(team)}
-                        className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 font-bold text-xs flex items-center gap-1.5 border border-amber-400/30 transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95"
+                        className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 font-bold text-xs flex items-center gap-1.5 border border-amber-400/30 transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95 shrink-0"
                         title="Grant a milestone bounty or reward to a team member"
                       >
-                        <Gift className="w-3.5 h-3.5 text-amber-400" />
+                        <Gift className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                         <span>Reward</span>
                       </button>
                     )}
@@ -807,24 +813,25 @@ export function Teams() {
                     {team.isLead || team.isMember ? (
                       <button
                         onClick={() => openInviteModal(team)}
-                        className="text-xs font-bold text-white/80 hover:text-white flex items-center gap-1 underline underline-offset-4 decoration-amber-400/50 hover:decoration-amber-400 transition-colors cursor-pointer"
+                        className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-1.5 border border-white/10 transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95 shrink-0"
+                        title="Invite a peer to join this team"
                       >
-                        <UserPlus className="w-3.5 h-3.5 text-amber-400" />
+                        <UserPlus className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                         <span>Invite</span>
                       </button>
                     ) : team.hasRequested ? (
                       /* If user has already requested to join */
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 shrink-0">
                         <span className="text-xs font-bold text-amber-300/90 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-400/10 border border-amber-400/20">
-                          <Clock className="w-3.5 h-3.5 text-amber-400" />
+                          <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                           <span>Request Sent</span>
                         </span>
                         <button
                           onClick={() => handleCancelJoinRequest(team)}
-                          className="text-xs font-bold text-red-300 hover:text-red-200 px-2.5 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition-all cursor-pointer flex items-center gap-1"
+                          className="text-xs font-bold text-red-300 hover:text-red-200 px-2.5 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition-all cursor-pointer flex items-center gap-1 shrink-0"
                           title="Withdraw and delete your join request from database"
                         >
-                          <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                          <Trash2 className="w-3.5 h-3.5 text-red-400 shrink-0" />
                           <span>Withdraw</span>
                         </button>
                       </div>
@@ -832,10 +839,10 @@ export function Teams() {
                       /* If user is not in team -> REQUEST TO JOIN BUTTON */
                       <button
                         onClick={() => openJoinModal(team)}
-                        className="glass-btn-cta px-3.5 py-1.5 rounded-xl text-slate-950 font-black text-xs shadow-md flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 transition-all"
+                        className="glass-btn-cta px-3.5 py-1.5 rounded-xl text-slate-950 font-black text-xs shadow-md flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 transition-all shrink-0"
                         title={`Send a request to join ${team.title}`}
                       >
-                        <Send className="w-3.5 h-3.5" />
+                        <Send className="w-3.5 h-3.5 shrink-0" />
                         <span>Join</span>
                       </button>
                     )}

@@ -41,6 +41,7 @@ export function Search() {
   const [sentSuccessMsg, setSentSuccessMsg] = useState('');
   const [requestErr, setRequestErr] = useState('');
   const [viewingProfile, setViewingProfile] = useState(null);
+  const [hideTeammates, setHideTeammates] = useState(true);
 
   const handleViewProfile = (candidate) => {
     setViewingProfile(candidate);
@@ -65,6 +66,9 @@ export function Search() {
   }, []);
 
   const filteredCandidates = candidates.filter((c) => {
+    // Hide peers who are already your teammate in your teams
+    if (hideTeammates && c.isTeammate) return false;
+
     const term = (searchTerm || '').trim().toLowerCase();
     const cName = (c.name || '').toLowerCase();
     const cDept = (c.department || '').toLowerCase();
@@ -208,7 +212,23 @@ export function Search() {
               ))}
             </div>
 
-            <div className="flex items-center gap-2 ml-auto">
+            <div className="flex flex-wrap items-center gap-2 ml-auto">
+              {candidates.some((c) => c.isTeammate) && (
+                <button
+                  type="button"
+                  onClick={() => setHideTeammates(!hideTeammates)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all border ${
+                    hideTeammates
+                      ? 'bg-white/5 border-white/10 text-white/70 hover:text-white hover:bg-white/10'
+                      : 'bg-indigo-500/20 border-indigo-400/40 text-indigo-300'
+                  }`}
+                  title={hideTeammates ? 'Show peers who are already in your teams' : 'Hide peers who are already in your teams'}
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  <span>{hideTeammates ? 'Hide My Teammates' : 'Show All Teammates'}</span>
+                </button>
+              )}
+
               {(selectedDept !== 'All' || selectedSkill !== 'All' || selectedTag !== 'All' || searchTerm.trim()) && (
                 <button
                   onClick={() => {

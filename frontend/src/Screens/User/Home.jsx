@@ -124,6 +124,9 @@ export function Home() {
   }, []);
 
   const filteredPeers = allPeers.filter((peer) => {
+    // Exclude current teammates from featured recruitment list on home dashboard
+    if (peer.isTeammate) return false;
+
     const matchesDept =
       selectedDept === 'All' ||
       (peer.department && peer.department.toLowerCase() === selectedDept.toLowerCase());
@@ -429,59 +432,61 @@ export function Home() {
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2.5">
-                {/* Department Filter Dropdown */}
-                <div className="relative">
-                  <select
-                    value={selectedDept}
-                    onChange={(e) => setSelectedDept(e.target.value)}
-                    className="px-3 py-2 glass-input-field rounded-xl text-xs font-bold text-white cursor-pointer appearance-none pr-7"
-                  >
-                    <option value="All" className="bg-slate-900 text-white">All Departments</option>
-                    {DEPARTMENTS.map((dept) => (
-                      <option key={dept} value={dept} className="bg-slate-900 text-white">
-                        {dept} Department
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div className="flex flex-wrap items-center justify-between sm:justify-start gap-2.5 w-full md:w-auto">
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Department Filter Dropdown */}
+                  <div className="relative">
+                    <select
+                      value={selectedDept}
+                      onChange={(e) => setSelectedDept(e.target.value)}
+                      className="px-3 py-2 glass-input-field rounded-xl text-xs font-bold text-white cursor-pointer appearance-none pr-7"
+                    >
+                      <option value="All" className="bg-slate-900 text-white">All Departments</option>
+                      {DEPARTMENTS.map((dept) => (
+                        <option key={dept} value={dept} className="bg-slate-900 text-white">
+                          {dept} Department
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                {/* Skills Filter Dropdown */}
-                <div className="relative">
-                  <select
-                    value={selectedSkill}
-                    onChange={(e) => setSelectedSkill(e.target.value)}
-                    className="px-3 py-2 glass-input-field rounded-xl text-xs font-bold text-white cursor-pointer appearance-none pr-7 max-w-[170px]"
-                  >
-                    <option value="All" className="bg-slate-900 text-white">All Skills</option>
-                    {CURATED_SKILLS.map((sk) => (
-                      <option key={sk} value={sk} className="bg-slate-900 text-white">
-                        {sk}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                  {/* Skills Filter Dropdown */}
+                  <div className="relative">
+                    <select
+                      value={selectedSkill}
+                      onChange={(e) => setSelectedSkill(e.target.value)}
+                      className="px-3 py-2 glass-input-field rounded-xl text-xs font-bold text-white cursor-pointer appearance-none pr-7 max-w-[170px]"
+                    >
+                      <option value="All" className="bg-slate-900 text-white">All Skills</option>
+                      {CURATED_SKILLS.map((sk) => (
+                        <option key={sk} value={sk} className="bg-slate-900 text-white">
+                          {sk}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                {/* Reset Filters button if any active */}
-                {(selectedDept !== 'All' || selectedSkill !== 'All') && (
-                  <button
-                    onClick={() => {
-                      setSelectedDept('All');
-                      setSelectedSkill('All');
-                    }}
-                    className="px-2.5 py-2 rounded-xl glass-btn-ghost text-amber-300 hover:text-white text-xs font-bold flex items-center gap-1 cursor-pointer transition-all border border-amber-400/30"
-                    title="Reset all filters"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Reset</span>
-                  </button>
-                )}
+                  {/* Reset Filters button if any active */}
+                  {(selectedDept !== 'All' || selectedSkill !== 'All') && (
+                    <button
+                      onClick={() => {
+                        setSelectedDept('All');
+                        setSelectedSkill('All');
+                      }}
+                      className="px-2.5 py-2 rounded-xl glass-btn-ghost text-amber-300 hover:text-white text-xs font-bold flex items-center gap-1 cursor-pointer transition-all border border-amber-400/30"
+                      title="Reset all filters"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Reset</span>
+                    </button>
+                  )}
+                </div>
 
                 <Link
                   to="/search"
-                  className="text-xs font-bold text-amber-300 hover:text-amber-200 flex items-center gap-1 transition-colors ml-auto sm:ml-0"
+                  className="text-xs font-bold text-amber-300 hover:text-amber-200 flex items-center gap-1 transition-colors shrink-0 ml-auto sm:ml-2"
                 >
-                  View All ({allPeers.length})
+                  <span>View All ({allPeers.length})</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>

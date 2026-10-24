@@ -334,8 +334,9 @@ const updateRequestStatus = async (req, res) => {
       const isSender = request.sender.toString() === req.user._id.toString();
       const isRecipient = request.recipient.toString() === req.user._id.toString();
 
-      // Recipient cannot accept until the request sender or team lead explicitly allows them, or the sender accepts directly
-      if (isRecipient && !isSender) {
+      // Flow 1: For peer requests or team invitations, candidate recipient cannot accept until the sender/lead explicitly allows them.
+      // Flow 2: For team join requests, the recipient IS the Team Lead who has full authority to evaluate and accept the applicant.
+      if (isRecipient && !isSender && request.requestType !== 'team_join_request') {
         if (!request.leadAllowedJoin) {
           return res.status(403).json({
             success: false,
@@ -361,7 +362,7 @@ const updateRequestStatus = async (req, res) => {
       }
 
       // If the Team Lead is directly accepting, mark leadAllowedJoin as true as well
-      if (isSender) {
+      if (isSender || request.requestType === 'team_join_request') {
         request.leadAllowedJoin = true;
         request.leadAllowedJoinAt = request.leadAllowedJoinAt || new Date();
       }

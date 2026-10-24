@@ -81,31 +81,31 @@ export function Login() {
       />
 
       {/* Top Header Navigation matching Screenshot */}
-      <header className="relative z-20 max-w-7xl mx-auto w-full px-5 sm:px-8 py-5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-sky-400 text-white flex items-center justify-center font-black shadow-lg shadow-blue-500/25 shrink-0">
-            <Users className="w-6 h-6 text-white" />
+      <header className="relative z-20 max-w-7xl mx-auto w-full px-4 sm:px-8 py-3.5 sm:py-5 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-blue-600 to-sky-400 text-white flex items-center justify-center font-black shadow-lg shadow-blue-500/25 shrink-0">
+            <Users className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-black tracking-tight leading-none text-slate-900 dark:text-white transition-colors">
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-2xl font-black tracking-tight leading-none text-slate-900 dark:text-white transition-colors truncate">
               CampusCollab
             </h1>
-            <p className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 transition-colors">
+            <p className="text-[10px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 transition-colors truncate hidden xs:block sm:block">
               Institute Skill & Collaboration Network
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {/* Light / Dark Mode Toggle Button */}
           <ThemeToggle showLabel={false} />
 
           <Link
             to="/register"
-            className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-2xl glass-btn-cta text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-blue-500/25 transition-all cursor-pointer shrink-0"
+            className="px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl glass-btn-cta text-white font-bold text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 shadow-lg shadow-blue-500/25 transition-all cursor-pointer shrink-0 whitespace-nowrap"
           >
-            <span>Register as Candidate</span>
-            <span className="text-sm font-extrabold">→</span>
+            <span>Register<span className="hidden sm:inline"> as Candidate</span></span>
+            <span className="text-sm font-extrabold">&rarr;</span>
           </Link>
         </div>
       </header>
@@ -124,7 +124,7 @@ export function Login() {
             </div>
 
             {/* Main Headline */}
-            <h2 className="text-4xl sm:text-5xl lg:text-[3.35rem] font-black leading-[1.12] tracking-tight text-slate-900 dark:text-white transition-colors">
+            <h2 className="text-3xl sm:text-5xl lg:text-[3.35rem] font-black leading-[1.15] tracking-tight text-slate-900 dark:text-white transition-colors">
               Find the right person in <br className="hidden sm:inline" />
               your institute <br />
               <span className="brand-gradient-text drop-shadow-sm">

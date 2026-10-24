@@ -34,6 +34,7 @@ import {
   Check,
   ShieldCheck,
   UserPlus,
+  UserCheck,
   Plus,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -1001,32 +1002,48 @@ int main() {
 
                     {/* Verification & Admission Lock Status Banner */}
                     {(() => {
-                      if (!req.leadAllowedJoin && req.status === 'pending') {
-                        return (
-                          <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-400/25 text-amber-300 text-xs flex items-center gap-2.5">
-                            <Lock className="w-4 h-4 shrink-0 text-amber-400" />
-                            <div className="min-w-0">
-                              <span className="font-bold">Awaiting Sender / Team Lead Approval:</span>
-                              <span className="text-white/80 ml-1.5">
-                                You received an offer from {req.name}, but you cannot accept until they click "Allow to Join" or approve your offer.
-                              </span>
+                      if (req.requestType === 'team_join_request') {
+                        if (req.status === 'pending') {
+                          return (
+                            <div className="p-2.5 rounded-2xl bg-blue-500/10 border border-blue-400/25 text-blue-300 text-xs flex items-center gap-2.5">
+                              <UserCheck className="w-4 h-4 shrink-0 text-blue-400" />
+                              <div className="min-w-0">
+                                <span className="font-bold">Student Membership Application:</span>
+                                <span className="text-white/80 ml-1.5">
+                                  {req.name} has requested to join your squad as <strong>{req.role || 'Contributor'}</strong>. Review their credentials and click "Accept & Add" to admit them.
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                        );
-                      }
+                          );
+                        }
+                      } else {
+                        if (!req.leadAllowedJoin && req.status === 'pending') {
+                          return (
+                            <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-400/25 text-amber-300 text-xs flex items-center gap-2.5">
+                              <Lock className="w-4 h-4 shrink-0 text-amber-400" />
+                              <div className="min-w-0">
+                                <span className="font-bold">Awaiting Sender / Team Lead Approval:</span>
+                                <span className="text-white/80 ml-1.5">
+                                  You received an offer from {req.name}, but you cannot accept until they click "Allow to Join" or approve your offer.
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        }
 
-                      if (req.leadAllowedJoin && req.status === 'pending') {
-                        return (
-                          <div className="p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-400/25 text-emerald-300 text-xs flex items-center gap-2.5">
-                            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
-                            <div className="min-w-0">
-                              <span className="font-bold">Sender / Lead Approved:</span>
-                              <span className="text-white/80 ml-1.5">
-                                Permission has been granted! You can now accept this offer below.
-                              </span>
+                        if (req.leadAllowedJoin && req.status === 'pending') {
+                          return (
+                            <div className="p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-400/25 text-emerald-300 text-xs flex items-center gap-2.5">
+                              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                              <div className="min-w-0">
+                                <span className="font-bold">Sender / Lead Approved:</span>
+                                <span className="text-white/80 ml-1.5">
+                                  Permission has been granted! You can now accept this offer below.
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                        );
+                          );
+                        }
                       }
 
                       const testPending = req.testDetails?.isAssigned && req.testDetails?.status !== 'completed';
@@ -1067,7 +1084,8 @@ int main() {
                         {req.status === 'pending' && (
                           <>
                             {(() => {
-                              const leadNotAllowedYet = !req.leadAllowedJoin;
+                              const isJoinRequest = req.requestType === 'team_join_request';
+                              const leadNotAllowedYet = !isJoinRequest && !req.leadAllowedJoin;
                               const testPending = req.testDetails?.isAssigned && req.testDetails?.status !== 'completed';
                               const syncPending = req.interactionRequested && !req.interactionCompleted;
                               const isLocked = leadNotAllowedYet || testPending || syncPending;
@@ -1247,6 +1265,20 @@ int main() {
                     {(() => {
                       if (req.status !== 'pending') return null;
 
+                      if (req.requestType === 'team_join_request') {
+                        return (
+                          <div className="p-2.5 rounded-2xl bg-blue-500/10 border border-blue-400/25 text-blue-300 text-xs flex items-center gap-2.5">
+                            <Clock className="w-4 h-4 shrink-0 text-blue-400" />
+                            <div className="min-w-0">
+                              <span className="font-bold">Application Under Review:</span>
+                              <span className="text-white/80 ml-1.5">
+                                Your request to join team <strong>{req.team?.title || 'the squad'}</strong> has been sent to {req.name}. You will receive a notification as soon as they make a decision.
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      }
+
                       return (
                         <div className={`p-2.5 rounded-2xl text-xs flex items-center gap-2.5 ${
                           req.leadAllowedJoin 
@@ -1291,35 +1323,39 @@ int main() {
                         {/* For sent requests, sender can Allow to Join or Cancel */}
                         {req.status === 'pending' && (
                           <>
-                            <button
-                              onClick={() => handleAllowCandidate(req.id, !req.leadAllowedJoin)}
-                              className={`py-1.5 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                                req.leadAllowedJoin
-                                  ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 hover:bg-rose-500/15 hover:border-rose-500/30 hover:text-rose-300'
-                                  : 'bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-300'
-                              }`}
-                              title={req.leadAllowedJoin ? 'Click to revoke join permission' : 'Allow candidate to accept and join'}
-                            >
-                              {req.leadAllowedJoin ? (
-                                <>
-                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                                  <span>Allowed to Join ✓</span>
-                                </>
-                              ) : (
-                                <>
-                                  <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-                                  <span>Allow to Join</span>
-                                </>
-                              )}
-                            </button>
+                            {req.requestType !== 'team_join_request' && (
+                              <button
+                                onClick={() => handleAllowCandidate(req.id, !req.leadAllowedJoin)}
+                                className={`py-1.5 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                  req.leadAllowedJoin
+                                    ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 hover:bg-rose-500/15 hover:border-rose-500/30 hover:text-rose-300'
+                                    : 'bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-300'
+                                }`}
+                                title={req.leadAllowedJoin ? 'Click to revoke join permission' : 'Allow candidate to accept and join'}
+                              >
+                                {req.leadAllowedJoin ? (
+                                  <>
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                                    <span>Allowed to Join ✓</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                                    <span>Allow to Join</span>
+                                  </>
+                                )}
+                              </button>
+                            )}
 
-                            <button
-                              onClick={() => handleRespond(req.id, 'rejected')}
-                              className="glass-btn-ghost py-1.5 px-2.5 rounded-xl text-red-300 hover:text-red-200 border-red-500/30 hover:bg-red-500/10 font-bold text-xs transition-all flex items-center justify-center gap-1 cursor-pointer"
-                              title="Cancel invitation"
-                            >
-                              <XCircle className="w-3.5 h-3.5 text-red-400" /> Cancel
-                            </button>
+                            {req.requestType !== 'team_join_request' && (
+                              <button
+                                onClick={() => handleRespond(req.id, 'rejected')}
+                                className="glass-btn-ghost py-1.5 px-2.5 rounded-xl text-red-300 hover:text-red-200 border-red-500/30 hover:bg-red-500/10 font-bold text-xs transition-all flex items-center justify-center gap-1 cursor-pointer"
+                                title="Cancel invitation"
+                              >
+                                <XCircle className="w-3.5 h-3.5 text-red-400" /> Cancel
+                              </button>
+                            )}
                           </>
                         )}
 

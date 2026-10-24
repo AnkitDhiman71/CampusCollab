@@ -262,14 +262,14 @@ export function AdminQuestions() {
               )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 max-w-full">
               {/* Language Filter */}
-              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900/80 p-1 rounded-xl border border-slate-200 dark:border-white/10 text-xs">
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900/80 p-1 rounded-xl border border-slate-200 dark:border-white/10 text-xs max-w-full overflow-x-auto scrollbar-none">
                 {['all', 'javascript', 'python', 'cpp', 'c', 'typescript'].map((lang) => (
                   <button
                     key={lang}
                     onClick={() => setLanguageFilter(lang)}
-                    className={`px-2.5 py-1 rounded-lg font-bold text-[11px] capitalize transition-all cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-lg font-bold text-[11px] capitalize transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                       languageFilter === lang
                         ? 'bg-blue-600 text-white shadow-sm'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -281,12 +281,12 @@ export function AdminQuestions() {
               </div>
 
               {/* Difficulty Filter */}
-              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900/80 p-1 rounded-xl border border-slate-200 dark:border-white/10 text-xs">
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900/80 p-1 rounded-xl border border-slate-200 dark:border-white/10 text-xs max-w-full overflow-x-auto scrollbar-none">
                 {['all', 'Easy', 'Medium', 'Hard'].map((diff) => (
                   <button
                     key={diff}
                     onClick={() => setDifficultyFilter(diff)}
-                    className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-lg font-bold text-[11px] transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                       difficultyFilter === diff
                         ? 'bg-amber-500 text-slate-950 shadow-sm'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
