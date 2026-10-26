@@ -24,7 +24,7 @@ const questionSchema = new mongoose.Schema(
     },
     language: {
       type: String,
-      enum: ['javascript', 'python', 'cpp', 'typescript'],
+      enum: ['javascript', 'python', 'cpp', 'c', 'java', 'typescript'],
       default: 'javascript',
     },
     duration: {

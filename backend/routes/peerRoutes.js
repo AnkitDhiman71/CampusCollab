@@ -15,6 +15,7 @@ const {
   reviewTechnicalTest,
   aiExplainCode,
   aiEvaluateAssessment,
+  aiGenerateTestCases,
   runCodeSnippet,
   markInteractionCompleted,
   allowCandidateToJoin,
@@ -44,6 +45,7 @@ router.post('/execute-code', protect, runCodeSnippet);
 
 // AI Assistance & Code Intelligence
 router.post('/ai/explain-code', protect, aiExplainCode);
+router.post('/ai/generate-test-cases', protect, aiGenerateTestCases);
 router.post('/requests/:id/test/ai-evaluate', protect, aiEvaluateAssessment);
 
 // Technical Coding Assessment routes

@@ -146,6 +146,16 @@ export const aiEvaluateAssessment = async (requestId) => {
   return res.json();
 };
 
+export const aiGenerateTestCases = async (payload) => {
+  const res = await fetch(`${BASE_URL}/ai/generate-test-cases`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+};
+
 export const executeCodeApi = async ({ code, language, stdin = '' }) => {
   const res = await fetch(`${BASE_URL}/execute-code`, {
     method: 'POST',

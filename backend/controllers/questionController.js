@@ -246,6 +246,7 @@ const createQuestion = async (req, res) => {
       duration,
       description,
       starterCode,
+      testCases,
     } = req.body;
 
     if (!name || !name.trim()) {
@@ -267,6 +268,7 @@ const createQuestion = async (req, res) => {
       duration: Number(duration) || 30,
       description: description.trim(),
       starterCode: starterCode || '',
+      testCases: Array.isArray(testCases) ? testCases : [],
       createdBy: req.user ? req.user._id : null,
     });
 
@@ -292,6 +294,7 @@ const updateQuestion = async (req, res) => {
       duration,
       description,
       starterCode,
+      testCases,
     } = req.body;
 
     const question = await Question.findById(req.params.id);
@@ -307,6 +310,7 @@ const updateQuestion = async (req, res) => {
     if (duration !== undefined) question.duration = Number(duration) || 30;
     if (description !== undefined) question.description = description.trim();
     if (starterCode !== undefined) question.starterCode = starterCode;
+    if (testCases !== undefined && Array.isArray(testCases)) question.testCases = testCases;
 
     await question.save();
 

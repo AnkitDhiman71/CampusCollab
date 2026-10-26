@@ -38,7 +38,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { getMyRequests, updateRequestStatus, requestPeerInteraction, deleteRequest, assignTechnicalTest, reviewTechnicalTest, getAssessmentQuestions, aiEvaluateAssessment, markInteractionCompleted, allowCandidateToJoin } from '../../API/peers';
+import { getMyRequests, updateRequestStatus, requestPeerInteraction, deleteRequest, assignTechnicalTest, reviewTechnicalTest, getAssessmentQuestions, aiEvaluateAssessment, markInteractionCompleted, allowCandidateToJoin, aiGenerateTestCases } from '../../API/peers';
 import { getMe } from '../../API/auth';
 import PeerProfileModal from '../../Components/PeerProfileModal';
 
@@ -408,6 +408,8 @@ export function Requests() {
   const [testCases, setTestCases] = useState([{ input: '', expectedOutput: '', explanation: '' }]);
   const [assigningTest, setAssigningTest] = useState(false);
   const [assignError, setAssignError] = useState('');
+  const [isGeneratingTestCases, setIsGeneratingTestCases] = useState(false);
+  const [aiGenSuccessMsg, setAiGenSuccessMsg] = useState('');
 
   const [reviewTarget, setReviewTarget] = useState(null);
   const [reviewScore, setReviewScore] = useState('');
@@ -501,6 +503,35 @@ int main() {
       setTestCases(preset.testCases);
     } else {
       setTestCases([{ input: '', expectedOutput: '', explanation: '' }]);
+    }
+  };
+
+  const handleGenerateAiTestCases = async () => {
+    if (!testDesc.trim()) {
+      setAssignError('Please provide problem statement/requirements first so Gemini can analyze the challenge specifications.');
+      return;
+    }
+    setIsGeneratingTestCases(true);
+    setAssignError('');
+    setAiGenSuccessMsg('');
+    try {
+      const res = await aiGenerateTestCases({
+        title: testTitle,
+        description: testDesc,
+        language: testLanguage,
+        starterCode: testStarter,
+      });
+      if (res?.success && Array.isArray(res.testCases) && res.testCases.length > 0) {
+        setTestCases(res.testCases);
+        setAiGenSuccessMsg(`✨ Successfully generated ${res.testCases.length} test cases with Gemini AI!`);
+        setTimeout(() => setAiGenSuccessMsg(''), 4500);
+      } else {
+        setAssignError(res?.message || 'Could not generate test cases.');
+      }
+    } catch (err) {
+      setAssignError(err.message || 'Failed to generate test cases with AI.');
+    } finally {
+      setIsGeneratingTestCases(false);
     }
   };
 
@@ -1717,19 +1748,47 @@ int main() {
 
               {/* Test Cases & Assertions */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <label className="text-xs font-semibold text-white/90 flex items-center gap-1.5">
                     <Terminal className="w-3.5 h-3.5 text-amber-300" />
                     <span>Sample Test Cases & Assertions ({testCases.length})</span>
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => setTestCases([...testCases, { input: '', expectedOutput: '', explanation: '' }])}
-                    className="px-2.5 py-1 rounded-xl glass-btn-ghost text-amber-300 hover:text-white text-[11px] font-bold flex items-center gap-1 transition-all border border-amber-400/30 cursor-pointer"
-                  >
-                    <Plus className="w-3 h-3" /> Add Test Case
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleGenerateAiTestCases}
+                      disabled={isGeneratingTestCases}
+                      className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-amber-500/20 to-purple-500/20 hover:from-amber-500/30 hover:to-purple-500/30 text-amber-300 hover:text-white text-[11px] font-bold flex items-center gap-1.5 transition-all border border-amber-400/40 cursor-pointer disabled:opacity-50 shadow-sm"
+                      title="Analyze problem description & starter code with Gemini to auto-generate edge cases"
+                    >
+                      {isGeneratingTestCases ? (
+                        <>
+                          <Loader2 className="w-3 h-3 animate-spin text-amber-300" />
+                          <span>Generating with Gemini...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-3 h-3 text-amber-300" />
+                          <span>Generate with AI</span>
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTestCases([...testCases, { input: '', expectedOutput: '', explanation: '' }])}
+                      className="px-2.5 py-1 rounded-xl glass-btn-ghost text-amber-300 hover:text-white text-[11px] font-bold flex items-center gap-1 transition-all border border-amber-400/30 cursor-pointer"
+                    >
+                      <Plus className="w-3 h-3" /> Add Test Case
+                    </button>
+                  </div>
                 </div>
+
+                {aiGenSuccessMsg && (
+                  <div className="px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] flex items-center gap-1.5 animate-fadeIn">
+                    <Sparkles className="w-3 h-3 text-emerald-400 shrink-0" />
+                    <span>{aiGenSuccessMsg}</span>
+                  </div>
+                )}
 
                 <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                   {testCases.map((tc, idx) => (

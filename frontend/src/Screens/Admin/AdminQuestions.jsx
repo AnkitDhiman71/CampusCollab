@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import AdminNavbar from '../../Components/AdminNavbar';
-import { Code2, Plus, Trash2, Edit3, Search, Clock, Tag, CheckCircle2, AlertTriangle, Loader2, X, Copy, Check, ChevronDown, ChevronUp, FileCode, Sparkles } from 'lucide-react';
+import { Code2, Plus, Trash2, Edit3, Search, Clock, Tag, CheckCircle2, AlertTriangle, Loader2, X, Copy, Check, ChevronDown, ChevronUp, FileCode, Sparkles, Terminal } from 'lucide-react';
 import { getAllQuestionsAdmin, createQuestionAdmin, updateQuestionAdmin, deleteQuestionAdmin } from '../../API/admin';
+import { aiGenerateTestCases } from '../../API/peers';
 
 export function AdminQuestions() {
   const [questions, setQuestions] = useState([]);
@@ -19,6 +20,9 @@ export function AdminQuestions() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
 
+  const [isGeneratingTestCases, setIsGeneratingTestCases] = useState(false);
+  const [aiGenSuccessMsg, setAiGenSuccessMsg] = useState('');
+
   const [formData, setFormData] = useState({
     name: '',
     title: '',
@@ -28,6 +32,7 @@ export function AdminQuestions() {
     duration: 30,
     description: '',
     starterCode: '',
+    testCases: [{ input: '', expectedOutput: '', explanation: '' }],
   });
 
   const fetchQuestions = async () => {
@@ -52,6 +57,7 @@ export function AdminQuestions() {
   const openAddModal = () => {
     setEditingId(null);
     setFormError('');
+    setAiGenSuccessMsg('');
     setFormData({
       name: '',
       title: '',
@@ -61,6 +67,7 @@ export function AdminQuestions() {
       duration: 30,
       description: '',
       starterCode: '',
+      testCases: [{ input: '', expectedOutput: '', explanation: '' }],
     });
     setIsModalOpen(true);
   };
@@ -68,6 +75,7 @@ export function AdminQuestions() {
   const openEditModal = (q) => {
     setEditingId(q._id);
     setFormError('');
+    setAiGenSuccessMsg('');
     setFormData({
       name: q.name || '',
       title: q.title || '',
@@ -77,8 +85,40 @@ export function AdminQuestions() {
       duration: q.duration || 30,
       description: q.description || '',
       starterCode: q.starterCode || '',
+      testCases: Array.isArray(q.testCases) && q.testCases.length > 0
+        ? q.testCases
+        : [{ input: '', expectedOutput: '', explanation: '' }],
     });
     setIsModalOpen(true);
+  };
+
+  const handleGenerateAiTestCases = async () => {
+    if (!formData.description.trim()) {
+      setFormError('Please enter problem statement / test instructions first so Gemini can analyze the challenge specifications.');
+      return;
+    }
+    setIsGeneratingTestCases(true);
+    setFormError('');
+    setAiGenSuccessMsg('');
+    try {
+      const res = await aiGenerateTestCases({
+        title: formData.title || formData.name,
+        description: formData.description,
+        language: formData.language,
+        starterCode: formData.starterCode,
+      });
+      if (res?.success && Array.isArray(res.testCases) && res.testCases.length > 0) {
+        setFormData((prev) => ({ ...prev, testCases: res.testCases }));
+        setAiGenSuccessMsg(`✨ Successfully generated ${res.testCases.length} test cases with Gemini AI!`);
+        setTimeout(() => setAiGenSuccessMsg(''), 4500);
+      } else {
+        setFormError(res?.message || 'Could not generate test cases.');
+      }
+    } catch (err) {
+      setFormError(err.message || 'Failed to generate test cases with AI.');
+    } finally {
+      setIsGeneratingTestCases(false);
+    }
   };
 
   const handleFormSubmit = async (e) => {
@@ -613,12 +653,143 @@ export function AdminQuestions() {
                     Starter Code Template (Optional)
                   </label>
                   <textarea
-                    rows={6}
+                    rows={5}
                     value={formData.starterCode}
                     onChange={(e) => setFormData({ ...formData, starterCode: e.target.value })}
                     placeholder={`function solution() {\n  // Starter template code...\n}\n`}
                     className="w-full rounded-xl glass-input-field p-3 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none font-mono"
                   />
+                </div>
+
+                {/* Sample Test Cases & Assertions */}
+                <div className="space-y-2 pt-1">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <label className="text-xs font-semibold text-slate-700 dark:text-white/90 flex items-center gap-1.5">
+                      <Terminal className="w-3.5 h-3.5 text-blue-500" />
+                      <span>Sample Test Cases & Assertions ({formData.testCases?.length || 0})</span>
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleGenerateAiTestCases}
+                        disabled={isGeneratingTestCases}
+                        className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-amber-500/20 to-purple-500/20 hover:from-amber-500/30 hover:to-purple-500/30 text-amber-500 dark:text-amber-300 text-[11px] font-bold flex items-center gap-1.5 transition-all border border-amber-400/40 cursor-pointer disabled:opacity-50 shadow-sm"
+                        title="Analyze problem description & starter code with Gemini to auto-generate edge cases"
+                      >
+                        {isGeneratingTestCases ? (
+                          <>
+                            <Loader2 className="w-3 h-3 animate-spin text-amber-500 dark:text-amber-300" />
+                            <span>Generating with Gemini...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-3 h-3 text-amber-500 dark:text-amber-300" />
+                            <span>Generate with AI</span>
+                          </>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFormData({
+                            ...formData,
+                            testCases: [...(formData.testCases || []), { input: '', expectedOutput: '', explanation: '' }],
+                          })
+                        }
+                        className="px-2.5 py-1 rounded-xl glass-btn-ghost text-blue-600 dark:text-blue-400 hover:text-blue-700 text-[11px] font-bold flex items-center gap-1 transition-all border border-blue-400/30 cursor-pointer"
+                      >
+                        <Plus className="w-3 h-3" /> Add Test Case
+                      </button>
+                    </div>
+                  </div>
+
+                  {aiGenSuccessMsg && (
+                    <div className="px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-300 text-[11px] flex items-center gap-1.5 animate-fadeIn">
+                      <Sparkles className="w-3 h-3 text-emerald-500 dark:text-emerald-400 shrink-0" />
+                      <span>{aiGenSuccessMsg}</span>
+                    </div>
+                  )}
+
+                  <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                    {(formData.testCases || []).map((tc, idx) => (
+                      <div
+                        key={idx}
+                        className="p-3 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-slate-900/40 space-y-2 relative group hover:border-blue-400/40 transition-all"
+                      >
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="font-bold text-blue-600 dark:text-blue-400">Test Case #{idx + 1}</span>
+                          {(formData.testCases?.length || 0) > 1 && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setFormData({
+                                  ...formData,
+                                  testCases: formData.testCases.filter((_, i) => i !== idx),
+                                })
+                              }
+                              className="text-slate-400 hover:text-red-500 font-bold transition-colors cursor-pointer"
+                              title="Remove test case"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          <div className="space-y-0.5">
+                            <label className="text-[10px] text-slate-500 dark:text-white/60 font-semibold">
+                              Input / Arguments
+                            </label>
+                            <input
+                              type="text"
+                              value={tc.input || ''}
+                              onChange={(e) => {
+                                const updated = [...formData.testCases];
+                                updated[idx].input = e.target.value;
+                                setFormData({ ...formData, testCases: updated });
+                              }}
+                              placeholder='e.g. [3, 1, 4, 1, 5] or "CampusCollab"'
+                              className="w-full rounded-lg glass-input-field px-2.5 py-1.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none font-mono"
+                            />
+                          </div>
+
+                          <div className="space-y-0.5">
+                            <label className="text-[10px] text-slate-500 dark:text-white/60 font-semibold">
+                              Expected Output
+                            </label>
+                            <input
+                              type="text"
+                              value={tc.expectedOutput || ''}
+                              onChange={(e) => {
+                                const updated = [...formData.testCases];
+                                updated[idx].expectedOutput = e.target.value;
+                                setFormData({ ...formData, testCases: updated });
+                              }}
+                              placeholder='e.g. min: 1, max: 5 or "balloCsupmaC"'
+                              className="w-full rounded-lg glass-input-field px-2.5 py-1.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none font-mono"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-0.5">
+                          <label className="text-[10px] text-slate-500 dark:text-white/60 font-semibold">
+                            Explanation (What this tests)
+                          </label>
+                          <input
+                            type="text"
+                            value={tc.explanation || ''}
+                            onChange={(e) => {
+                              const updated = [...formData.testCases];
+                              updated[idx].explanation = e.target.value;
+                              setFormData({ ...formData, testCases: updated });
+                            }}
+                            placeholder="e.g. Edge case with negative numbers, Single element array"
+                            className="w-full rounded-lg glass-input-field px-2.5 py-1.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Buttons */}

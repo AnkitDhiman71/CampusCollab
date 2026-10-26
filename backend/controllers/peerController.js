@@ -3,7 +3,7 @@ const Request = require('../models/requestModel');
 const Team = require('../models/teamModel');
 const { sendVideoCallEmail, sendTeamJoinedConfirmationEmail, sendPeerCollaborationRequestEmail, sendTechnicalTestAssignedEmail } = require('../config/nodemailer');
 const { fetchGitHubData } = require('../utils/githubService');
-const { explainCodeSnippet, evaluateAssessmentCode } = require('../utils/geminiService');
+const { explainCodeSnippet, evaluateAssessmentCode, generateTestCases } = require('../utils/geminiService');
 const { executeCode } = require('../utils/codeExecutionService');
 const { createNotification } = require('../utils/notificationService');
 const getAllPeers = async (req, res) => {
@@ -1054,6 +1054,26 @@ const runCodeSnippet = async (req, res) => {
   }
 };
 
+const aiGenerateTestCases = async (req, res) => {
+  try {
+    const { title, description, language = 'javascript', starterCode = '' } = req.body;
+    if (!description || !description.trim()) {
+      return res.status(400).json({ success: false, message: 'Problem description or requirements are required to generate test cases.' });
+    }
+
+    const result = await generateTestCases({ title, description, language, starterCode });
+    return res.json({
+      success: true,
+      testCases: result.testCases || [],
+      provider: result.provider,
+      warning: result.warning,
+    });
+  } catch (error) {
+    console.error('Error in aiGenerateTestCases:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 const markInteractionCompleted = async (req, res) => {
   try {
     const request = await Request.findOne({
@@ -1149,6 +1169,7 @@ module.exports = {
   reviewTechnicalTest,
   aiExplainCode,
   aiEvaluateAssessment,
+  aiGenerateTestCases,
   runCodeSnippet,
   markInteractionCompleted,
   allowCandidateToJoin,
