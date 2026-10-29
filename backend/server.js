@@ -73,14 +73,43 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/campusCollab';
 const { seedDefaultQuestionsIfNeeded } = require('./controllers/questionController');
-mongoose.connect(MONGO_URI)
-  .then(async () => {
-    console.log(`MongoDB Connected`);
-    await seedDefaultQuestionsIfNeeded().catch((err) => console.error('Question seed error:', err));
-    app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
-  })
-  .catch((err) => {
-    console.error(`MongoDB error: ${err.message}`);
-    process.exit(1);
-  });
+
+try {
+  dns.setDefaultResultOrder('ipv4first');
+} catch (e) {}
+
+let isDbConnected = false;
+const connectDatabaseWithRetry = async (retryCount = 0) => {
+  try {
+    await mongoose.connect(MONGO_URI, {
+      serverSelectionTimeoutMS: 8000,
+      family: 4,
+    });
+    isDbConnected = true;
+    console.log(`✓ MongoDB Connected Successfully`);
+    await seedDefaultQuestionsIfNeeded().catch((err) => console.error('Question seed error:', err.message));
+  } catch (err) {
+    console.warn(`[MongoDB Warning] Connection attempt #${retryCount + 1} failed (${err.message}). Retrying in 5 seconds...`);
+    // Attempt fallback to local mongodb if Atlas SRV continues to fail after 3 tries
+    if (retryCount >= 2 && MONGO_URI.includes('mongodb+srv://') && !isDbConnected) {
+      try {
+        console.log(`[MongoDB Fallback] Testing local database fallback at mongodb://127.0.0.1:27017/campusCollab...`);
+        await mongoose.connect('mongodb://127.0.0.1:27017/campusCollab', { serverSelectionTimeoutMS: 3000 });
+        isDbConnected = true;
+        console.log(`✓ Connected to Local MongoDB database fallback.`);
+        await seedDefaultQuestionsIfNeeded().catch(() => {});
+        return;
+      } catch (localErr) {}
+    }
+    setTimeout(() => connectDatabaseWithRetry(retryCount + 1), 5000);
+  }
+};
+
+// Start Express server immediately so nodemon does not crash
+app.listen(PORT, () => {
+  console.log(`CampusCare Server running on http://localhost:${PORT}`);
+  connectDatabaseWithRetry();
+});
+
 module.exports = app;
+
