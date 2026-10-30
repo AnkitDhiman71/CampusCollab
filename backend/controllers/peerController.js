@@ -49,12 +49,15 @@ const getAllPeers = async (req, res) => {
 
     const { department, skill } = req.query;
 
-    // Fetch all student peers (exclude self if logged in as student; if admin, show all students)
+    // Fetch all student peers (ALWAYS exclude logged-in user themselves by ID and Email)
     const query = { 
       role: { $ne: 'admin' },
     };
-    if (currentUserId && req.user.role !== 'admin') {
+    if (req.user?._id) {
       query._id = { $ne: req.user._id };
+    }
+    if (req.user?.email) {
+      query.email = { $ne: req.user.email };
     }
     if (department && department !== 'All') {
       query.department = department;
@@ -70,7 +73,12 @@ const getAllPeers = async (req, res) => {
       success: true,
       count: peers.length,
       peers: peers.map((p) => {
-        const skillsList = p.skills ? p.skills.split(',').map((s) => s.trim()).filter(Boolean) : ['General Skills'];
+        let skillsList = ['General Skills'];
+        if (Array.isArray(p.skills)) {
+          skillsList = p.skills.filter(Boolean);
+        } else if (typeof p.skills === 'string' && p.skills.trim()) {
+          skillsList = p.skills.split(',').map((s) => s.trim()).filter(Boolean);
+        }
         return {
           id: p._id,
           _id: p._id,

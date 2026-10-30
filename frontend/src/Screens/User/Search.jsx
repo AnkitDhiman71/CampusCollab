@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../../Components/Layout';
 import {
+  Users,
   Search as SearchIcon,
   Send,
   CheckCircle2,
@@ -19,12 +20,14 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { getPeers, sendCollaborationRequest } from '../../API/peers';
+import { getMe } from '../../API/auth';
 import PeerProfileModal from '../../Components/PeerProfileModal';
 import { CURATED_SKILLS, DEPARTMENTS } from '../../data/skills';
 
 const SKILL_TAGS = ['All', 'React', 'Node.js', 'Python', 'MERN', 'C++', 'Java', 'UI/UX'];
 
 export function Search() {
+  const [currentUser, setCurrentUser] = useState(null);
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -41,7 +44,7 @@ export function Search() {
   const [sentSuccessMsg, setSentSuccessMsg] = useState('');
   const [requestErr, setRequestErr] = useState('');
   const [viewingProfile, setViewingProfile] = useState(null);
-  const [hideTeammates, setHideTeammates] = useState(true);
+  const [hideTeammates, setHideTeammates] = useState(false);
 
   const handleViewProfile = (candidate) => {
     setViewingProfile(candidate);
@@ -50,9 +53,27 @@ export function Search() {
   const fetchPeers = async () => {
     setLoading(true);
     try {
-      const data = await getPeers();
-      if (data?.success) {
-        setCandidates(data.peers || []);
+      const [peersData, meData] = await Promise.all([
+        getPeers(),
+        getMe().catch(() => null),
+      ]);
+
+      if (meData?.success && meData.user) {
+        setCurrentUser(meData.user);
+      }
+
+      if (peersData?.success) {
+        let peerList = peersData.peers || [];
+        const myId = (meData?.user?._id || meData?.user?.id)?.toString();
+        const myEmail = (meData?.user?.email || '').toLowerCase();
+        if (myId || myEmail) {
+          peerList = peerList.filter(
+            (p) =>
+              (p._id || p.id)?.toString() !== myId &&
+              (!myEmail || (p.email || '').toLowerCase() !== myEmail)
+          );
+        }
+        setCandidates(peerList);
       }
     } catch (err) {
       console.error('Failed to load peers:', err);
@@ -66,7 +87,17 @@ export function Search() {
   }, []);
 
   const filteredCandidates = candidates.filter((c) => {
-    // Hide peers who are already your teammate in your teams
+    // Never show self in peer discovery
+    if (
+      currentUser &&
+      ((c._id && (c._id === currentUser._id || c._id === currentUser.id)) ||
+        (c.id && (c.id === currentUser._id || c.id === currentUser.id)) ||
+        (c.email && currentUser.email && c.email.toLowerCase() === currentUser.email.toLowerCase()))
+    ) {
+      return false;
+    }
+
+    // Hide peers who are already your teammate only if the toggle is explicitly turned ON
     if (hideTeammates && c.isTeammate) return false;
 
     const term = (searchTerm || '').trim().toLowerCase();

@@ -97,7 +97,17 @@ export function Home() {
           setCurrentUser(meRes.user);
         }
         if (peersRes?.success) {
-          setAllPeers(peersRes.peers || []);
+          let list = peersRes.peers || [];
+          const myId = (meRes?.user?._id || meRes?.user?.id)?.toString();
+          const myEmail = (meRes?.user?.email || '').toLowerCase();
+          if (myId || myEmail) {
+            list = list.filter(
+              (p) =>
+                (p._id || p.id)?.toString() !== myId &&
+                (!myEmail || (p.email || '').toLowerCase() !== myEmail)
+            );
+          }
+          setAllPeers(list);
         }
         if (reqRes?.success) {
           const pending = (reqRes.incoming || []).filter((r) => r.status === 'pending').length;
@@ -123,23 +133,37 @@ export function Home() {
     loadHomeData();
   }, []);
 
-  const filteredPeers = allPeers.filter((peer) => {
-    // Exclude current teammates from featured recruitment list on home dashboard
-    if (peer.isTeammate) return false;
+  const filteredPeers = allPeers
+    .filter((peer) => {
+      // Never show ourselves
+      if (
+        currentUser &&
+        ((peer._id && (peer._id === currentUser._id || peer._id === currentUser.id)) ||
+          (peer.id && (peer.id === currentUser._id || peer.id === currentUser.id)) ||
+          (peer.email && currentUser.email && peer.email.toLowerCase() === currentUser.email.toLowerCase()))
+      ) {
+        return false;
+      }
 
-    const matchesDept =
-      selectedDept === 'All' ||
-      (peer.department && peer.department.toLowerCase() === selectedDept.toLowerCase());
+      const matchesDept =
+        selectedDept === 'All' ||
+        (peer.department && peer.department.toLowerCase() === selectedDept.toLowerCase());
 
-    const matchesSkill =
-      selectedSkill === 'All' ||
-      (Array.isArray(peer.skills)
-        ? peer.skills.some((s) => s.toLowerCase() === selectedSkill.toLowerCase())
-        : typeof peer.skills === 'string' &&
-          peer.skills.toLowerCase().includes(selectedSkill.toLowerCase()));
+      const matchesSkill =
+        selectedSkill === 'All' ||
+        (Array.isArray(peer.skills)
+          ? peer.skills.some((s) => s.toLowerCase() === selectedSkill.toLowerCase())
+          : typeof peer.skills === 'string' &&
+            peer.skills.toLowerCase().includes(selectedSkill.toLowerCase()));
 
-    return matchesDept && matchesSkill;
-  });
+      return matchesDept && matchesSkill;
+    })
+    .sort((a, b) => {
+      // Show open/non-teammate peers first, but keep teammates listed too
+      if (a.isTeammate && !b.isTeammate) return 1;
+      if (!a.isTeammate && b.isTeammate) return -1;
+      return 0;
+    });
 
   const stats = [
     {
@@ -542,9 +566,9 @@ export function Home() {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-                {filteredPeers.slice(0, 6).map((peer) => (
+                {filteredPeers.map((peer) => (
                   <div
-                    key={peer.id}
+                    key={peer.id || peer._id}
                     className="p-5 rounded-2xl glass-tile flex flex-col justify-between space-y-4 hover:border-white/30 transition-all"
                   >
                     <div>
@@ -582,13 +606,20 @@ export function Home() {
                         {peer.available}
                       </span>
 
-                      <Link
-                        to="/search"
-                        className="glass-btn-cta px-3 py-1.5 rounded-xl text-slate-950 text-xs font-black transition-all flex items-center gap-1 shadow-md"
-                      >
-                        <Send className="w-3 h-3" />
-                        Request
-                      </Link>
+                      {peer.isTeammate ? (
+                        <span className="px-3 py-1.5 rounded-xl bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 text-xs font-bold flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-indigo-300" />
+                          Teammate
+                        </span>
+                      ) : (
+                        <Link
+                          to="/search"
+                          className="glass-btn-cta px-3 py-1.5 rounded-xl text-slate-950 text-xs font-black transition-all flex items-center gap-1 shadow-md"
+                        >
+                          <Send className="w-3 h-3" />
+                          Request
+                        </Link>
+                      )}
                     </div>
                   </div>
                 ))}
