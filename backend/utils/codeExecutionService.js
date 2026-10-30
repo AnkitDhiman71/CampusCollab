@@ -89,7 +89,7 @@ async function executeCode({ code, language = 'c', stdin = '' }) {
   // Prepare code with main() fallback if missing
   const finalCode = prepareCode(code, pistonLang);
 
-  // Build the file payload for Piston with explicit language file extensions
+  // Build the file payload for Piston with explicit file extensions for GCC / G++ / OpenJDK
   const FILE_NAMES = {
     c: 'solution.c',
     'c++': 'solution.cpp',
@@ -97,7 +97,7 @@ async function executeCode({ code, language = 'c', stdin = '' }) {
     javascript: 'solution.js',
     java: getJavaFileName(finalCode),
   };
-  const fileName = FILE_NAMES[pistonLang] || (pistonLang === 'java' ? getJavaFileName(finalCode) : 'solution.txt');
+  const fileName = FILE_NAMES[pistonLang] || 'solution.txt';
   const files = [
     {
       name: fileName,
@@ -105,14 +105,22 @@ async function executeCode({ code, language = 'c', stdin = '' }) {
     },
   ];
 
-  // Try configured Piston URLs (Primary -> container fallback if inside Docker)
+  // Sanitize base URL (strip trailing /api/v2 and trailing slash if present)
+  const cleanBase = (PISTON_BASE_URL || '')
+    .trim()
+    .replace(/\/api\/v2\/?$/, '')
+    .replace(/\/+$/, '');
+
+  // Try configured Piston URLs (Environment URL -> Local container -> Host gateway)
   const candidateUrls = [
-    `${PISTON_BASE_URL}/api/v2/execute`,
+    `${cleanBase}/api/v2/execute`,
     'http://piston:2000/api/v2/execute',
     'http://host.docker.internal:2000/api/v2/execute',
+    'http://localhost:2000/api/v2/execute',
+    'http://127.0.0.1:2000/api/v2/execute',
   ];
 
-  const urlsToTry = [...new Set(candidateUrls)];
+  const urlsToTry = [...new Set(candidateUrls.filter(Boolean))];
   let lastError = null;
 
   for (const url of urlsToTry) {
@@ -124,6 +132,8 @@ async function executeCode({ code, language = 'c', stdin = '' }) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true', // Allows seamless tunneling through free-tier ngrok
+          'User-Agent': 'CampusCare-Execution-Engine',
         },
         body: JSON.stringify({
           language: pistonLang,
@@ -146,14 +156,14 @@ async function executeCode({ code, language = 'c', stdin = '' }) {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Piston API returned HTTP ${response.status}: ${errorText}`);
+        throw new Error(`Piston API returned HTTP ${response.status}: ${errorText.slice(0, 150)}`);
       }
 
       const data = await response.json();
       const compile = data.compile;
       const run = data.run;
 
-      // Check if compilation failed
+      // Check if compilation failed (C, C++, Java)
       const isCompileError = Boolean(compile && compile.code !== 0);
       const compileOutput = (compile?.stderr || compile?.output || compile?.stdout || '').trim();
 
@@ -192,10 +202,8 @@ async function executeCode({ code, language = 'c', stdin = '' }) {
       };
     } catch (err) {
       lastError = err;
-      if (err.cause?.code === 'ECONNREFUSED' || err.message.includes('ECONNREFUSED')) {
-        continue;
-      }
-      break;
+      // Continue to try the next URL in candidateUrls
+      continue;
     }
   }
 
