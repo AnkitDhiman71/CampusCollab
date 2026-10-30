@@ -42,11 +42,6 @@ const questionSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
-    starterTemplates: {
-      type: Map,
-      of: String,
-      default: {},
-    },
     testCases: [
       {
         input: { type: String, default: '' },

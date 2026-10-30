@@ -2,1086 +2,207 @@ const Question = require('../models/questionModel');
 
 const DEFAULT_QUESTIONS = [
   {
-    name: 'DSA: Two Sum Target Pair',
-    title: 'Two Sum: Find Target Index Pair',
-    category: 'Algorithms & Arrays',
-    difficulty: 'Easy',
-    language: 'cpp',
-    duration: 25,
+    name: 'Frontend: React State & Array Filter',
+    title: 'React & JS: State Filter & Transformation',
+    category: 'Frontend',
+    difficulty: 'Medium',
+    language: 'javascript',
+    duration: 30,
     description: `Problem Statement:
-Given an array of integers and an integer target, return the 0-based indices of the two numbers such that they add up to the target.
-You may assume that each input would have exactly one solution, and you may not use the same element twice.
+You are building an active filter for a student talent directory.
+Implement a function filterCandidates(candidates, filterCriteria) that:
+1. Takes an array of student objects: { name: string, skills: string[], rankingPoints: number, isAvailable: boolean }
+2. Filters for candidates where isAvailable === true AND rankingPoints >= filterCriteria.minPoints
+3. If filterCriteria.requiredSkill is provided, the candidate's skills array must include that skill (case-insensitive).
+4. Returns the filtered list sorted in descending order of rankingPoints.
 
-Input Format:
-- Line 1: Two space-separated integers, n (number of elements) and target.
-- Line 2: n space-separated integers representing the array elements.
+Sample Input:
+const candidates = [
+  { name: 'Alice', skills: ['React', 'Node'], rankingPoints: 850, isAvailable: true },
+  { name: 'Bob', skills: ['Python'], rankingPoints: 920, isAvailable: false },
+  { name: 'Charlie', skills: ['React', 'TypeScript'], rankingPoints: 780, isAvailable: true }
+];
 
-Output Format:
-- Print the two 0-based indices separated by a space (in increasing order).
+filterCandidates(candidates, { minPoints: 700, requiredSkill: 'React' });
 
-Example:
-Input:
-4 9
-2 7 11 15
-
-Output:
-0 1`,
-    starterTemplates: {
-      cpp: `#include <iostream>
-#include <vector>
-#include <unordered_map>
-
-using namespace std;
-
-int main() {
-    int n, target;
-    if (!(cin >> n >> target)) return 0;
-    vector<int> nums(n);
-    unordered_map<int, int> mp;
-    int a = -1, b = -1;
-    for (int i = 0; i < n; i++) {
-        cin >> nums[i];
-        int diff = target - nums[i];
-        if (a == -1 && mp.count(diff)) {
-            a = mp[diff];
-            b = i;
-        }
-        mp[nums[i]] = i;
-    }
-    cout << a << " " << b << endl;
-    return 0;
-}
-`,
-      python: `import sys
-
-def solve():
-    tokens = sys.stdin.read().split()
-    if not tokens:
-        return
-    n = int(tokens[0])
-    target = int(tokens[1])
-    nums = [int(x) for x in tokens[2:2+n]]
-    lookup = {}
-    for i, num in enumerate(nums):
-        diff = target - num
-        if diff in lookup:
-            print(f"{lookup[diff]} {i}")
-            return
-        lookup[num] = i
-
-if __name__ == "__main__":
-    solve()
-`,
-      java: `import java.util.*;
-
-public class Main {
-    public static void main(String[] args) {
-        Scanner sc = new Scanner(System.in);
-        if (!sc.hasNextInt()) return;
-        int n = sc.nextInt();
-        int target = sc.nextInt();
-        Map<Integer, Integer> map = new HashMap<>();
-        for (int i = 0; i < n; i++) {
-            int num = sc.nextInt();
-            int diff = target - num;
-            if (map.containsKey(diff)) {
-                System.out.println(map.get(diff) + " " + i);
-                return;
-            }
-            map.put(num, i);
-        }
-    }
-}
-`,
-      c: `#include <stdio.h>
-
-int main() {
-    int n, target;
-    if (scanf("%d %d", &n, &target) != 2) return 0;
-    int nums[1000];
-    for (int i = 0; i < n; i++) scanf("%d", &nums[i]);
-    for (int i = 0; i < n; i++) {
-        for (int j = i + 1; j < n; j++) {
-            if (nums[i] + nums[j] == target) {
-                printf("%d %d\\n", i, j);
-                return 0;
-            }
-        }
-    }
-    return 0;
-}
-`,
-      javascript: `const fs = require('fs');
-
-function solve() {
-    const tokens = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);
-    if (tokens.length < 3) return;
-    const n = parseInt(tokens[0], 10);
-    const target = parseInt(tokens[1], 10);
-    const nums = tokens.slice(2, 2 + n).map(Number);
-    const map = new Map();
-    for (let i = 0; i < nums.length; i++) {
-        const diff = target - nums[i];
-        if (map.has(diff)) {
-            console.log(map.get(diff) + " " + i);
-            return;
-        }
-        map.set(nums[i], i);
-    }
+Expected Output:
+[
+  { name: 'Alice', ... },
+  { name: 'Charlie', ... }
+]`,
+    starterCode: `function filterCandidates(candidates, filterCriteria) {
+  // Write your code here
+  
 }
 
-solve();
-`,
-    },
-    starterCode: `#include <iostream>
-#include <vector>
-#include <unordered_map>
+// Test cases below
+const testCandidates = [
+  { name: 'Alice', skills: ['React', 'Node'], rankingPoints: 850, isAvailable: true },
+  { name: 'Bob', skills: ['Python'], rankingPoints: 920, isAvailable: false },
+  { name: 'Charlie', skills: ['React', 'TypeScript'], rankingPoints: 780, isAvailable: true }
+];
 
-using namespace std;
-
-int main() {
-    int n, target;
-    if (!(cin >> n >> target)) return 0;
-    vector<int> nums(n);
-    unordered_map<int, int> mp;
-    int a = -1, b = -1;
-    for (int i = 0; i < n; i++) {
-        cin >> nums[i];
-        int diff = target - nums[i];
-        if (a == -1 && mp.count(diff)) {
-            a = mp[diff];
-            b = i;
-        }
-        mp[nums[i]] = i;
-    }
-    cout << a << " " << b << endl;
-    return 0;
-}
+console.log(filterCandidates(testCandidates, { minPoints: 700, requiredSkill: 'React' }));
 `,
-    testCases: [
-      {
-        input: `4 9\n2 7 11 15`,
-        expectedOutput: `0 1`,
-        explanation: 'nums[0] + nums[1] = 2 + 7 = 9 at indices 0 and 1.',
-      },
-      {
-        input: `3 6\n3 2 4`,
-        expectedOutput: `1 2`,
-        explanation: 'nums[1] + nums[2] = 2 + 4 = 6 at indices 1 and 2.',
-      },
-      {
-        input: `2 6\n3 3`,
-        expectedOutput: `0 1`,
-        explanation: 'Equal elements at index 0 and 1 sum to 6.',
-      },
-      {
-        input: `5 -8\n-1 -2 -3 -4 -5`,
-        expectedOutput: `2 4`,
-        explanation: 'Negative integers: (-3) + (-5) = -8 at indices 2 and 4.',
-      },
-      {
-        input: `4 0\n0 4 3 0`,
-        expectedOutput: `0 3`,
-        explanation: 'Zero values at index 0 and 3 sum to 0.',
-      },
-    ],
   },
   {
-    name: 'DSA: Array Minimum & Maximum',
-    title: 'Find Minimum and Maximum in Array',
-    category: 'Algorithms & Arrays',
+    name: 'Algorithm: Two Sum / Target Match',
+    title: 'Data Structures: Two Sum Index Pair',
+    category: 'Algorithms',
     difficulty: 'Easy',
-    language: 'cpp',
+    language: 'javascript',
     duration: 20,
     description: `Problem Statement:
-Given an array of integers, find the minimum and maximum elements in the array.
-Operate with optimal O(n) time complexity.
-
-Input Format:
-- Line 1: An integer n representing the size of the array.
-- Line 2: n space-separated integers representing the array.
-
-Output Format:
-- Print the result in the exact format: "Min: X, Max: Y"
+Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.
+You may assume that each input would have exactly one solution, and you may not use the same element twice.
+Aim for O(n) time complexity using a Hash Map / Object.
 
 Example:
-Input:
-5
-34 12 89 5 67
+Input: nums = [2, 7, 11, 15], target = 9
+Output: [0, 1] (because nums[0] + nums[1] === 9)
 
-Output:
-Min: 5, Max: 89`,
-    starterTemplates: {
-      cpp: `#include <iostream>
-#include <vector>
-#include <algorithm>
-
-using namespace std;
-
-int main() {
-    int n;
-    if (!(cin >> n)) return 0;
-    vector<int> arr(n);
-    for (int i = 0; i < n; i++) cin >> arr[i];
-    int minVal = *min_element(arr.begin(), arr.end());
-    int maxVal = *max_element(arr.begin(), arr.end());
-    cout << "Min: " << minVal << ", Max: " << maxVal << endl;
-    return 0;
-}
-`,
-      python: `import sys
-
-def solve():
-    tokens = sys.stdin.read().split()
-    if not tokens:
-        return
-    n = int(tokens[0])
-    arr = [int(x) for x in tokens[1:1+n]]
-    print(f"Min: {min(arr)}, Max: {max(arr)}")
-
-if __name__ == "__main__":
-    solve()
-`,
-      java: `import java.util.*;
-
-public class Main {
-    public static void main(String[] args) {
-        Scanner sc = new Scanner(System.in);
-        if (!sc.hasNextInt()) return;
-        int n = sc.nextInt();
-        int min = Integer.MAX_VALUE;
-        int max = Integer.MIN_VALUE;
-        for (int i = 0; i < n; i++) {
-            int x = sc.nextInt();
-            if (x < min) min = x;
-            if (x > max) max = x;
-        }
-        System.out.println("Min: " + min + ", Max: " + max);
-    }
-}
-`,
-      c: `#include <stdio.h>
-
-int main() {
-    int n;
-    if (scanf("%d", &n) != 1) return 0;
-    int min = 1000000000, max = -1000000000;
-    for (int i = 0; i < n; i++) {
-        int x;
-        scanf("%d", &x);
-        if (x < min) min = x;
-        if (x > max) max = x;
-    }
-    printf("Min: %d, Max: %d\\n", min, max);
-    return 0;
-}
-`,
-      javascript: `const fs = require('fs');
-
-function solve() {
-    const tokens = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);
-    if (!tokens || tokens.length < 2) return;
-    const n = parseInt(tokens[0], 10);
-    const arr = tokens.slice(1, 1 + n).map(Number);
-    console.log(\`Min: \${Math.min(...arr)}, Max: \${Math.max(...arr)}\`);
+Input: nums = [3, 2, 4], target = 6
+Output: [1, 2]`,
+    starterCode: `function twoSum(nums, target) {
+  // Your O(n) solution here
+  
 }
 
-solve();
+console.log('Test 1:', twoSum([2, 7, 11, 15], 9)); // Expected: [0, 1]
+console.log('Test 2:', twoSum([3, 2, 4], 6));       // Expected: [1, 2]
 `,
-    },
-    starterCode: `#include <iostream>
-#include <vector>
-#include <algorithm>
-
-using namespace std;
-
-int main() {
-    int n;
-    if (!(cin >> n)) return 0;
-    vector<int> arr(n);
-    for (int i = 0; i < n; i++) cin >> arr[i];
-    int minVal = *min_element(arr.begin(), arr.end());
-    int maxVal = *max_element(arr.begin(), arr.end());
-    cout << "Min: " << minVal << ", Max: " << maxVal << endl;
-    return 0;
-}
-`,
-    testCases: [
-      {
-        input: `5\n34 12 89 5 67`,
-        expectedOutput: `Min: 5, Max: 89`,
-        explanation: 'Standard array with positive numbers. Minimum is 5, maximum is 89.',
-      },
-      {
-        input: `5\n-10 -3 -50 -1 -22`,
-        expectedOutput: `Min: -50, Max: -1`,
-        explanation: 'All negative values: minimum is -50, maximum is -1.',
-      },
-      {
-        input: `1\n42`,
-        expectedOutput: `Min: 42, Max: 42`,
-        explanation: 'Single element boundary condition: min and max are identical.',
-      },
-      {
-        input: `6\n7 0 7 -5 0 -5`,
-        expectedOutput: `Min: -5, Max: 7`,
-        explanation: 'Array with duplicate values, zeros, and negative numbers.',
-      },
-    ],
   },
   {
-    name: 'DSA: Valid Palindrome Verification',
-    title: 'Valid Palindrome: Two Pointers',
-    category: 'Strings & Two Pointers',
+    name: 'Async: Promise Queue / Retry Fetch',
+    title: 'Async JavaScript: Retry Function with Backoff',
+    category: 'Async & APIs',
+    difficulty: 'Medium',
+    language: 'javascript',
+    duration: 35,
+    description: `Problem Statement:
+Implement an async utility function retryWithBackoff(fn, maxRetries, delayMs).
+It executes an asynchronous function fn:
+1. If fn succeeds, it resolves with the result.
+2. If fn throws an error, it waits delayMs milliseconds and retries up to maxRetries times.
+3. If all attempts fail, it rejects with the last encountered error.
+
+Write the function and test it below.`,
+    starterCode: `async function retryWithBackoff(fn, maxRetries = 3, delayMs = 500) {
+  // Your retry implementation here
+  
+}
+
+// Simulated unstable API
+let attempt = 0;
+async function fetchMockData() {
+  attempt++;
+  if (attempt < 3) throw new Error('Network timeout on attempt ' + attempt);
+  return { status: 200, data: 'CampusCare API Ready' };
+}
+
+retryWithBackoff(fetchMockData, 3, 200)
+  .then(res => console.log('Success:', res))
+  .catch(err => console.error('Failed after retries:', err.message));
+`,
+  },
+  {
+    name: 'Python: Word Frequency & Clean Text',
+    title: 'Python: Word Counter & Frequency Analysis',
+    category: 'Data Processing',
+    difficulty: 'Easy',
+    language: 'python',
+    duration: 25,
+    description: `Problem Statement:
+Implement a function count_word_frequency(sentence) in Python that:
+1. Cleans the text by removing punctuation (periods, commas, exclamation marks).
+2. Converts all words to lowercase.
+3. Returns a dictionary mapping each word to the number of occurrences.
+
+Example:
+Input: "The quick brown fox jumps over the lazy dog."
+Output: {'the': 2, 'quick': 1, 'brown': 1, 'fox': 1, 'jumps': 1, 'over': 1, 'lazy': 1, 'dog': 1}`,
+    starterCode: `import string
+
+def count_word_frequency(sentence):
+    # Your code here
+    pass
+
+text = "The quick brown fox jumps over the lazy dog."
+print(count_word_frequency(text))
+`,
+  },
+  {
+    name: 'C++: Valid Palindrome & Two Pointers',
+    title: 'C++: Efficient Two-Pointer Palindrome Verification',
+    category: 'Algorithms',
     difficulty: 'Easy',
     language: 'cpp',
     duration: 20,
     description: `Problem Statement:
 A phrase is a palindrome if, after converting all uppercase letters into lowercase letters and removing all non-alphanumeric characters, it reads the same forward and backward.
-Given a string s, print "true" if it is a palindrome, or "false" otherwise.
-
-Input Format:
-- A single line containing string s.
-
-Output Format:
-- Print "true" or "false" (lowercase).
+Alphanumeric characters include letters and numbers.
+Given a string s, return true if it is a palindrome, or false otherwise.
 
 Example:
-Input:
-A man, a plan, a canal: Panama
-
-Output:
-true`,
-    starterTemplates: {
-      cpp: `#include <iostream>
-#include <string>
-#include <cctype>
-
-using namespace std;
-
-bool isPalindrome(const string& s) {
-    string clean = "";
-    for (char c : s) if (isalnum(c)) clean += tolower(c);
-    int l = 0, r = (int)clean.size() - 1;
-    while (l < r) {
-        if (clean[l] != clean[r]) return false;
-        l++; r--;
-    }
-    return true;
-}
-
-int main() {
-    string s;
-    if (getline(cin, s)) {
-        cout << (isPalindrome(s) ? "true" : "false") << endl;
-    }
-    return 0;
-}
-`,
-      python: `import sys
-
-def solve():
-    s = sys.stdin.read().strip()
-    clean = "".join(ch.lower() for ch in s if ch.isalnum())
-    print("true" if clean == clean[::-1] else "false")
-
-if __name__ == "__main__":
-    solve()
-`,
-      java: `import java.util.*;
-
-public class Main {
-    public static void main(String[] args) {
-        Scanner sc = new Scanner(System.in);
-        String s = sc.hasNextLine() ? sc.nextLine() : "";
-        String clean = s.replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
-        int l = 0, r = clean.length() - 1;
-        boolean pal = true;
-        while (l < r) {
-            if (clean.charAt(l) != clean.charAt(r)) {
-                pal = false;
-                break;
-            }
-            l++; r--;
-        }
-        System.out.println(pal ? "true" : "false");
-    }
-}
-`,
-      c: `#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <stdbool.h>
-
-bool isPalindrome(const char* s) {
-    int l = 0, r = strlen(s) - 1;
-    while (l < r) {
-        while (l < r && !isalnum((unsigned char)s[l])) l++;
-        while (l < r && !isalnum((unsigned char)s[r])) r--;
-        if (tolower((unsigned char)s[l]) != tolower((unsigned char)s[r])) return false;
-        l++; r--;
-    }
-    return true;
-}
-
-int main() {
-    char s[2048] = {0};
-    if (fgets(s, sizeof(s), stdin)) {
-        size_t len = strlen(s);
-        if (len > 0 && s[len-1] == '\\n') s[len-1] = '\\0';
-        printf("%s\\n", isPalindrome(s) ? "true" : "false");
-    }
-    return 0;
-}
-`,
-      javascript: `const fs = require('fs');
-
-function solve() {
-    const s = fs.readFileSync(0, 'utf-8').trim();
-    const clean = s.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const isPal = clean === clean.split('').reverse().join('');
-    console.log(isPal ? 'true' : 'false');
-}
-
-solve();
-`,
-    },
+Input: s = "A man, a plan, a canal: Panama"
+Output: true (Explanation: "amanaplanacanalpanama" is a palindrome)`,
     starterCode: `#include <iostream>
 #include <string>
 #include <cctype>
 
-using namespace std;
-
-bool isPalindrome(const string& s) {
-    string clean = "";
-    for (char c : s) if (isalnum(c)) clean += tolower(c);
-    int l = 0, r = (int)clean.size() - 1;
-    while (l < r) {
-        if (clean[l] != clean[r]) return false;
-        l++; r--;
-    }
+bool isPalindrome(std::string s) {
+    // Your code here
     return true;
 }
 
 int main() {
-    string s;
-    if (getline(cin, s)) {
-        cout << (isPalindrome(s) ? "true" : "false") << endl;
-    }
+    std::string s1 = "A man, a plan, a canal: Panama";
+    std::cout << "Test 1: " << (isPalindrome(s1) ? "true" : "false") << std::endl;
     return 0;
 }
 `,
-    testCases: [
-      {
-        input: `A man, a plan, a canal: Panama`,
-        expectedOutput: `true`,
-        explanation: 'Cleaned text "amanaplanacanalpanama" is symmetrical.',
-      },
-      {
-        input: `race a car`,
-        expectedOutput: `false`,
-        explanation: 'Cleaned text "raceacar" is not a palindrome.',
-      },
-      {
-        input: ` `,
-        expectedOutput: `true`,
-        explanation: 'Empty or whitespace string after normalization is a palindrome.',
-      },
-      {
-        input: `0P`,
-        expectedOutput: `false`,
-        explanation: '"0p" != "p0".',
-      },
-      {
-        input: `Madam, I'm Adam`,
-        expectedOutput: `true`,
-        explanation: '"madamimadam" is symmetrical.',
-      },
-    ],
   },
   {
-    name: 'DSA: In-Place String Reversal',
-    title: 'In-Place String Reversal',
-    category: 'Strings & Pointers',
+    name: 'C: Reverse String & Pointers',
+    title: 'C (GCC): In-Place String Reversal with Pointers',
+    category: 'Algorithms',
     difficulty: 'Easy',
-    language: 'cpp',
+    language: 'c',
     duration: 20,
     description: `Problem Statement:
-Write a program that takes a string s and prints the reversed string.
-
-Input Format:
-- A single line containing the input string.
-
-Output Format:
-- Print the reversed string.
+Write a C function void reverseString(char* s) that reverses a null-terminated string in-place using two pointers.
+Do not allocate another array for the reverse string. You must do this by modifying the input array in-place with O(1) extra memory.
 
 Example:
-Input:
-CampusCollab
-
-Output:
-balloCsupmaC`,
-    starterTemplates: {
-      cpp: `#include <iostream>
-#include <string>
-#include <algorithm>
-
-using namespace std;
-
-int main() {
-    string s;
-    if (getline(cin, s)) {
-        reverse(s.begin(), s.end());
-        cout << s << endl;
-    }
-    return 0;
-}
-`,
-      python: `import sys
-
-def solve():
-    s = sys.stdin.read().strip()
-    print(s[::-1])
-
-if __name__ == "__main__":
-    solve()
-`,
-      java: `import java.util.*;
-
-public class Main {
-    public static void main(String[] args) {
-        Scanner sc = new Scanner(System.in);
-        String s = sc.hasNextLine() ? sc.nextLine() : "";
-        System.out.println(new StringBuilder(s).reverse().toString());
-    }
-}
-`,
-      c: `#include <stdio.h>
+Input: "campus"
+Output: "supmac"`,
+    starterCode: `#include <stdio.h>
 #include <string.h>
 
-int main() {
-    char s[2048] = {0};
-    if (fgets(s, sizeof(s), stdin)) {
-        size_t len = strlen(s);
-        if (len > 0 && s[len-1] == '\\n') s[--len] = '\\0';
-        int l = 0, r = len - 1;
-        while (l < r) {
-            char t = s[l];
-            s[l] = s[r];
-            s[r] = t;
-            l++; r--;
-        }
-        printf("%s\\n", s);
-    }
-    return 0;
-}
-`,
-      javascript: `const fs = require('fs');
-
-function solve() {
-    const s = fs.readFileSync(0, 'utf-8').trim();
-    console.log(s.split('').reverse().join(''));
-}
-
-solve();
-`,
-    },
-    starterCode: `#include <iostream>
-#include <string>
-#include <algorithm>
-
-using namespace std;
-
-int main() {
-    string s;
-    if (getline(cin, s)) {
-        reverse(s.begin(), s.end());
-        cout << s << endl;
-    }
-    return 0;
-}
-`,
-    testCases: [
-      {
-        input: `CampusCollab`,
-        expectedOutput: `balloCsupmaC`,
-        explanation: 'Mixed case word reversed.',
-      },
-      {
-        input: `hello`,
-        expectedOutput: `olleh`,
-        explanation: 'Odd length lowercase word.',
-      },
-      {
-        input: `A`,
-        expectedOutput: `A`,
-        explanation: 'Single character unchanged.',
-      },
-      {
-        input: `123456789`,
-        expectedOutput: `987654321`,
-        explanation: 'Digits reversed.',
-      },
-    ],
-  },
-  {
-    name: 'DSA: Valid Parentheses Matching',
-    title: 'Valid Parentheses: Stack Matching',
-    category: 'Data Structures & Stack',
-    difficulty: 'Medium',
-    language: 'cpp',
-    duration: 30,
-    description: `Problem Statement:
-Given a string s containing just the characters '(', ')', '{', '}', '[' and ']', determine if the input string is valid.
-An input string is valid if:
-1. Open brackets must be closed by the same type of brackets.
-2. Open brackets must be closed in the correct order.
-3. Every close bracket has a corresponding open bracket of the same type.
-
-Input Format:
-- A single line containing the bracket string s.
-
-Output Format:
-- Print "true" if the bracket string is valid, or "false" otherwise.
-
-Example:
-Input:
-()[]{}
-
-Output:
-true`,
-    starterTemplates: {
-      cpp: `#include <iostream>
-#include <stack>
-#include <string>
-
-using namespace std;
-
-bool isValid(const string& s) {
-    stack<char> st;
-    for (char c : s) {
-        if (c == '(' || c == '{' || c == '[') {
-            st.push(c);
-        } else {
-            if (st.empty()) return false;
-            char top = st.top();
-            st.pop();
-            if (c == ')' && top != '(') return false;
-            if (c == '}' && top != '{') return false;
-            if (c == ']' && top != '[') return false;
-        }
-    }
-    return st.empty();
+void reverseString(char* s) {
+    // Write your in-place pointer reversal here
+    
 }
 
 int main() {
-    string s;
-    if (cin >> s) {
-        cout << (isValid(s) ? "true" : "false") << endl;
-    }
+    char str[] = "CampusCollab";
+    printf("Original: %s\\n", str);
+    reverseString(str);
+    printf("Reversed: %s\\n", str);
     return 0;
 }
 `,
-      python: `import sys
-
-def solve():
-    s = sys.stdin.read().strip()
-    stack = []
-    pairs = {')': '(', '}': '{', ']': '['}
-    for c in s:
-        if c in '({[':
-            stack.append(c)
-        elif c in ')}]':
-            if not stack or stack[-1] != pairs[c]:
-                print("false")
-                return
-            stack.pop()
-    print("true" if not stack else "false")
-
-if __name__ == "__main__":
-    solve()
-`,
-      java: `import java.util.*;
-
-public class Main {
-    public static void main(String[] args) {
-        Scanner sc = new Scanner(System.in);
-        String s = sc.hasNext() ? sc.next() : "";
-        Deque<Character> st = new ArrayDeque<>();
-        boolean ok = true;
-        for (char c : s.toCharArray()) {
-            if (c == '(' || c == '{' || c == '[') {
-                st.push(c);
-            } else {
-                if (st.isEmpty()) { ok = false; break; }
-                char top = st.pop();
-                if (c == ')' && top != '(') { ok = false; break; }
-                if (c == '}' && top != '{') { ok = false; break; }
-                if (c == ']' && top != '[') { ok = false; break; }
-            }
-        }
-        System.out.println((ok && st.isEmpty()) ? "true" : "false");
-    }
-}
-`,
-      c: `#include <stdio.h>
-#include <string.h>
-#include <stdbool.h>
-
-bool isValid(const char* s) {
-    char stack[2048];
-    int top = -1;
-    for (int i = 0; s[i] != '\\0'; i++) {
-        char c = s[i];
-        if (c == '(' || c == '{' || c == '[') {
-            stack[++top] = c;
-        } else if (c == ')' || c == '}' || c == ']') {
-            if (top < 0) return false;
-            char t = stack[top--];
-            if (c == ')' && t != '(') return false;
-            if (c == '}' && t != '{') return false;
-            if (c == ']' && t != '[') return false;
-        }
-    }
-    return top == -1;
-}
-
-int main() {
-    char s[2048] = {0};
-    if (scanf("%s", s) == 1) {
-        printf("%s\\n", isValid(s) ? "true" : "false");
-    }
-    return 0;
-}
-`,
-      javascript: `const fs = require('fs');
-
-function solve() {
-    const s = fs.readFileSync(0, 'utf-8').trim();
-    const stack = [];
-    const pairs = { ')': '(', '}': '{', ']': '[' };
-    for (const c of s) {
-        if (c === '(' || c === '{' || c === '[') {
-            stack.push(c);
-        } else if (c === ')' || c === '}' || c === ']') {
-            if (stack.length === 0 || stack[stack.length - 1] !== pairs[c]) {
-                console.log('false');
-                return;
-            }
-            stack.pop();
-        }
-    }
-    console.log(stack.length === 0 ? 'true' : 'false');
-}
-
-solve();
-`,
-    },
-    starterCode: `#include <iostream>
-#include <stack>
-#include <string>
-
-using namespace std;
-
-bool isValid(const string& s) {
-    stack<char> st;
-    for (char c : s) {
-        if (c == '(' || c == '{' || c == '[') {
-            st.push(c);
-        } else {
-            if (st.empty()) return false;
-            char top = st.top();
-            st.pop();
-            if (c == ')' && top != '(') return false;
-            if (c == '}' && top != '{') return false;
-            if (c == ']' && top != '[') return false;
-        }
-    }
-    return st.empty();
-}
-
-int main() {
-    string s;
-    if (cin >> s) {
-        cout << (isValid(s) ? "true" : "false") << endl;
-    }
-    return 0;
-}
-`,
-    testCases: [
-      {
-        input: `()`,
-        expectedOutput: `true`,
-        explanation: 'Simple valid parenthesis pair.',
-      },
-      {
-        input: `()[]{}`,
-        expectedOutput: `true`,
-        explanation: 'Multiple sequential valid bracket pairs.',
-      },
-      {
-        input: `(]`,
-        expectedOutput: `false`,
-        explanation: 'Mismatched closing bracket: round opened but square closed.',
-      },
-      {
-        input: `([)]`,
-        expectedOutput: `false`,
-        explanation: 'Interleaved invalid nesting.',
-      },
-      {
-        input: `{[]}`,
-        expectedOutput: `true`,
-        explanation: 'Properly nested brackets.',
-      },
-    ],
-  },
-  {
-    name: 'DSA: Binary Search Lookup',
-    title: 'Binary Search: Efficient Lookup',
-    category: 'Algorithms & Divide and Conquer',
-    difficulty: 'Easy',
-    language: 'cpp',
-    duration: 20,
-    description: `Problem Statement:
-Given a sorted array of n integers and a target value, write a function to search for the target in the array.
-If the target exists, return its 0-based index. Otherwise, return -1.
-You must write an algorithm with O(log n) runtime complexity using Binary Search.
-
-Input Format:
-- Line 1: Two space-separated integers, n (number of elements) and target.
-- Line 2: n space-separated sorted integers.
-
-Output Format:
-- Print the index of target, or -1 if not found.
-
-Example:
-Input:
-5 9
-1 3 5 7 9
-
-Output:
-4`,
-    starterTemplates: {
-      cpp: `#include <iostream>
-#include <vector>
-
-using namespace std;
-
-int main() {
-    int n, target;
-    if (!(cin >> n >> target)) return 0;
-    vector<int> arr(n);
-    for (int i = 0; i < n; i++) cin >> arr[i];
-    int l = 0, r = n - 1, ans = -1;
-    while (l <= r) {
-        int mid = l + (r - l) / 2;
-        if (arr[mid] == target) {
-            ans = mid;
-            break;
-        } else if (arr[mid] < target) {
-            l = mid + 1;
-        } else {
-            r = mid - 1;
-        }
-    }
-    cout << ans << endl;
-    return 0;
-}
-`,
-      python: `import sys
-
-def solve():
-    tokens = sys.stdin.read().split()
-    if not tokens:
-        return
-    n = int(tokens[0])
-    target = int(tokens[1])
-    arr = [int(x) for x in tokens[2:2+n]]
-    low = 0
-    high = n - 1
-    ans = -1
-    while low <= high:
-        mid = (low + high) // 2
-        if arr[mid] == target:
-            ans = mid
-            break
-        elif arr[mid] < target:
-            low = mid + 1
-        else:
-            high = mid - 1
-    print(ans)
-
-if __name__ == "__main__":
-    solve()
-`,
-      java: `import java.util.*;
-
-public class Main {
-    public static void main(String[] args) {
-        Scanner sc = new Scanner(System.in);
-        if (!sc.hasNextInt()) return;
-        int n = sc.nextInt();
-        int target = sc.nextInt();
-        int[] arr = new int[n];
-        for (int i = 0; i < n; i++) arr[i] = sc.nextInt();
-        int l = 0, r = n - 1, ans = -1;
-        while (l <= r) {
-            int mid = l + (r - l) / 2;
-            if (arr[mid] == target) {
-                ans = mid;
-                break;
-            } else if (arr[mid] < target) {
-                l = mid + 1;
-            } else {
-                r = mid - 1;
-            }
-        }
-        System.out.println(ans);
-    }
-}
-`,
-      c: `#include <stdio.h>
-
-int main() {
-    int n, target;
-    if (scanf("%d %d", &n, &target) != 2) return 0;
-    int arr[1000];
-    for (int i = 0; i < n; i++) scanf("%d", &arr[i]);
-    int l = 0, r = n - 1, ans = -1;
-    while (l <= r) {
-        int mid = l + (r - l) / 2;
-        if (arr[mid] == target) {
-            ans = mid;
-            break;
-        } else if (arr[mid] < target) {
-            l = mid + 1;
-        } else {
-            r = mid - 1;
-        }
-    }
-    printf("%d\\n", ans);
-    return 0;
-}
-`,
-      javascript: `const fs = require('fs');
-
-function solve() {
-    const tokens = fs.readFileSync(0, 'utf-8').trim().split(/\\s+/);
-    if (tokens.length < 3) return;
-    const n = parseInt(tokens[0], 10);
-    const target = parseInt(tokens[1], 10);
-    const arr = tokens.slice(2, 2 + n).map(Number);
-    let l = 0, r = n - 1, ans = -1;
-    while (l <= r) {
-        const mid = Math.floor((l + r) / 2);
-        if (arr[mid] === target) {
-            ans = mid;
-            break;
-        } else if (arr[mid] < target) {
-            l = mid + 1;
-        } else {
-            r = mid - 1;
-        }
-    }
-    console.log(ans);
-}
-
-solve();
-`,
-    },
-    starterCode: `#include <iostream>
-#include <vector>
-
-using namespace std;
-
-int main() {
-    int n, target;
-    if (!(cin >> n >> target)) return 0;
-    vector<int> arr(n);
-    for (int i = 0; i < n; i++) cin >> arr[i];
-    int l = 0, r = n - 1, ans = -1;
-    while (l <= r) {
-        int mid = l + (r - l) / 2;
-        if (arr[mid] == target) {
-            ans = mid;
-            break;
-        } else if (arr[mid] < target) {
-            l = mid + 1;
-        } else {
-            r = mid - 1;
-        }
-    }
-    cout << ans << endl;
-    return 0;
-}
-`,
-    testCases: [
-      {
-        input: `5 9\n1 3 5 7 9`,
-        expectedOutput: `4`,
-        explanation: '9 is found at index 4.',
-      },
-      {
-        input: `6 2\n-1 0 2 5 9 12`,
-        expectedOutput: `2`,
-        explanation: '2 is found at index 2.',
-      },
-      {
-        input: `5 4\n1 3 5 7 9`,
-        expectedOutput: `-1`,
-        explanation: '4 does not exist in the array, returns -1.',
-      },
-      {
-        input: `1 10\n10`,
-        expectedOutput: `0`,
-        explanation: 'Single element array match at index 0.',
-      },
-      {
-        input: `1 5\n10`,
-        expectedOutput: `-1`,
-        explanation: 'Single element mismatch returns -1.',
-      },
-    ],
   },
 ];
 
-// Helper: Seed and sync initial questions into MongoDB if missing or outdated
+// Helper: Seed and sync initial questions into MongoDB if missing
 const seedDefaultQuestionsIfNeeded = async () => {
-  try {
-    // Clean up obsolete non-DSA records
-    await Question.deleteMany({
-      name: {
-        $in: [
-          'Frontend: React State & Array Filter',
-          'Async: Promise Queue / Retry Fetch',
-          'Python: Word Frequency & Clean Text',
-          'C++: Valid Palindrome & Two Pointers',
-          'C: Reverse String & Pointers',
-          'C: Array Min & Max Pointers',
-          'Algorithm: Two Sum / Target Match',
-        ],
-      },
-    });
-
-    for (const q of DEFAULT_QUESTIONS) {
-      const existing = await Question.findOne({ name: q.name });
-      if (!existing) {
-        await Question.create(q);
-      } else {
-        existing.title = q.title;
-        existing.category = q.category;
-        existing.difficulty = q.difficulty;
-        existing.duration = q.duration;
-        existing.description = q.description;
-        existing.starterTemplates = q.starterTemplates;
-        existing.starterCode = q.starterCode;
-        existing.testCases = q.testCases;
-        await existing.save();
-      }
-    }
-  } catch (err) {
-    console.warn('Note: Could not seed questions to MongoDB:', err.message);
+  for (const q of DEFAULT_QUESTIONS) {
+    await Question.findOneAndUpdate(
+      { name: q.name },
+      { $setOnInsert: q },
+      { upsert: true, new: true }
+    );
   }
 };
 
@@ -1089,7 +210,7 @@ const seedDefaultQuestionsIfNeeded = async () => {
 const getAllQuestions = async (req, res) => {
   try {
     await seedDefaultQuestionsIfNeeded();
-    const questions = await Question.find().sort({ createdAt: 1 });
+    const questions = await Question.find().sort({ createdAt: -1 });
     return res.json({
       success: true,
       count: questions.length,
@@ -1125,7 +246,6 @@ const createQuestion = async (req, res) => {
       duration,
       description,
       starterCode,
-      starterTemplates,
       testCases,
     } = req.body;
 
@@ -1142,13 +262,12 @@ const createQuestion = async (req, res) => {
     const newQuestion = await Question.create({
       name: name.trim(),
       title: title.trim(),
-      category: (category && category.trim()) || 'Algorithms',
+      category: (category && category.trim()) || 'General',
       difficulty: difficulty || 'Medium',
-      language: language || 'cpp',
+      language: language || 'javascript',
       duration: Number(duration) || 30,
       description: description.trim(),
       starterCode: starterCode || '',
-      starterTemplates: starterTemplates || {},
       testCases: Array.isArray(testCases) ? testCases : [],
       createdBy: req.user ? req.user._id : null,
     });
@@ -1175,7 +294,6 @@ const updateQuestion = async (req, res) => {
       duration,
       description,
       starterCode,
-      starterTemplates,
       testCases,
     } = req.body;
 
@@ -1192,7 +310,6 @@ const updateQuestion = async (req, res) => {
     if (duration !== undefined) question.duration = Number(duration) || 30;
     if (description !== undefined) question.description = description.trim();
     if (starterCode !== undefined) question.starterCode = starterCode;
-    if (starterTemplates !== undefined) question.starterTemplates = starterTemplates;
     if (testCases !== undefined && Array.isArray(testCases)) question.testCases = testCases;
 
     await question.save();

@@ -1,38 +1,18 @@
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 
-const fastGeminiCache = new Map();
-
 /**
- * Call Google Gemini API with fallback across high-speed model aliases and strict timeout
+ * Call Google Gemini API with fallback across model aliases
  */
-async function callGemini(prompt, systemInstruction = '', timeoutMs = 8000) {
+async function callGemini(prompt, systemInstruction = '') {
   if (!GEMINI_API_KEY) {
     throw new Error('GEMINI_API_KEY is not configured in backend/.env');
   }
 
-  // Check cache for identical prompts
-  const cacheKey = `${systemInstruction}:::${prompt}`;
-  if (fastGeminiCache.has(cacheKey)) {
-    return fastGeminiCache.get(cacheKey);
-  }
-
-  // Active high-speed generation models
-  const models = [
-    'gemini-3.8-flash',
-    'gemini-3.7-flash',
-    'gemini-flash-latest',
-    'gemini-flash-lite-latest',
-    'gemini-2.5-flash-lite',
-  ];
-
+  const models = ['gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite'];
   let lastError = null;
 
   for (const model of models) {
-    let timeoutId;
     try {
-      const controller = new AbortController();
-      timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
       const payload = {
         contents: [
@@ -52,31 +32,21 @@ async function callGemini(prompt, systemInstruction = '', timeoutMs = 8000) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-        signal: controller.signal,
       });
 
-      clearTimeout(timeoutId);
       const data = await response.json();
 
       if (!response.ok) {
         const errMsg = data?.error?.message || `Gemini API returned status ${response.status}`;
         lastError = new Error(errMsg);
-        continue; // Try next fast model alias
+        continue; // Try next model alias
       }
 
       const generatedText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
       if (generatedText) {
-        const result = generatedText.trim();
-        // Cache up to 100 recent entries
-        if (fastGeminiCache.size > 100) {
-          const firstKey = fastGeminiCache.keys().next().value;
-          fastGeminiCache.delete(firstKey);
-        }
-        fastGeminiCache.set(cacheKey, result);
-        return result;
+        return generatedText.trim();
       }
     } catch (err) {
-      if (timeoutId) clearTimeout(timeoutId);
       lastError = err;
     }
   }

@@ -20,7 +20,7 @@ const {
   markInteractionCompleted,
   allowCandidateToJoin,
 } = require('../controllers/peerController');
-const { getAllQuestions, getQuestionById } = require('../controllers/questionController');
+const { getAllQuestions } = require('../controllers/questionController');
 const { protect } = require('../middlewares/authMiddleware');
 const { validate, sendRequestSchema, updateRequestSchema } = require('../validations');
 
@@ -39,7 +39,6 @@ router.patch('/requests/:id/allow-join', protect, allowCandidateToJoin);
 
 // Assessment Question presets from DB
 router.get('/questions', protect, getAllQuestions);
-router.get('/questions/:id', protect, getQuestionById);
 
 // Multi-Language Code Execution (C, C++, Python, JavaScript)
 router.post('/execute-code', protect, runCodeSnippet);
@@ -55,7 +54,5 @@ router.get('/requests/:id/test', protect, getTechnicalTest);
 router.post('/requests/:id/test/start', protect, startTechnicalTest);
 router.post('/requests/:id/test/submit', protect, submitTechnicalTest);
 router.post('/requests/:id/test/review', protect, reviewTechnicalTest);
-
-
 
 module.exports = router;
