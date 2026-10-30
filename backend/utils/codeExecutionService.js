@@ -89,11 +89,18 @@ async function executeCode({ code, language = 'c', stdin = '' }) {
   // Prepare code with main() fallback if missing
   const finalCode = prepareCode(code, pistonLang);
 
-  // Build the file payload for Piston
-  const fileName = pistonLang === 'java' ? getJavaFileName(finalCode) : undefined;
+  // Build the file payload for Piston with explicit language file extensions
+  const FILE_NAMES = {
+    c: 'solution.c',
+    'c++': 'solution.cpp',
+    python: 'solution.py',
+    javascript: 'solution.js',
+    java: getJavaFileName(finalCode),
+  };
+  const fileName = FILE_NAMES[pistonLang] || (pistonLang === 'java' ? getJavaFileName(finalCode) : 'solution.txt');
   const files = [
     {
-      ...(fileName ? { name: fileName } : {}),
+      name: fileName,
       content: finalCode || '',
     },
   ];
@@ -127,6 +134,10 @@ async function executeCode({ code, language = 'c', stdin = '' }) {
           compile_timeout: 10000,
           run_cpu_time: 10000,
           compile_cpu_time: 10000,
+          ...(pistonLang === 'java' ? {
+            compile_args: ['-J-Xms16m', '-J-Xmx128m', '-J-XX:+TieredCompilation', '-J-XX:TieredStopAtLevel=1'],
+            run_args: ['-XX:+TieredCompilation', '-XX:TieredStopAtLevel=1', '-Xms16m', '-Xmx128m'],
+          } : {}),
         }),
         signal: controller.signal,
       });

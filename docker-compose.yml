@@ -19,6 +19,10 @@ services:
       dockerfile: Dockerfile
     env_file:
       - ./backend/.env
+    environment:
+      - PISTON_URL=http://host.docker.internal:2000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - shared_uploads:/app/uploads
     restart: always
