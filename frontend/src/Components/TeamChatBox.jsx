@@ -402,7 +402,7 @@ export function TeamChatBox({ team, currentUser, onClose }) {
                     )}
 
                     {/* Photo / Image Attachment */}
-                    {msg.attachment?.fileType === 'image' && (
+                    {Boolean(msg.attachment?.url && msg.attachment.fileType === 'image') && (
                       <div className="rounded-xl overflow-hidden border border-white/20 mt-1 max-w-sm">
                         <img
                           src={msg.attachment.url}
@@ -425,7 +425,7 @@ export function TeamChatBox({ team, currentUser, onClose }) {
                     )}
 
                     {/* Document / File Attachment */}
-                    {msg.attachment && msg.attachment.fileType !== 'image' && (
+                    {Boolean(msg.attachment?.url && msg.attachment.fileType !== 'image') && (
                       <div className="p-2.5 rounded-xl bg-white/15 dark:bg-black/20 border border-white/20 flex items-center justify-between gap-3 mt-1">
                         <div className="flex items-center gap-2 min-w-0">
                           <FileText className="w-4 h-4 text-amber-400 shrink-0" />
